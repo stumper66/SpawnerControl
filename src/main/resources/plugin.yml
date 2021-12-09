@@ -1,0 +1,14 @@
+name: 'SpawnerControl'
+version: '${project.version}'
+main: 'me.stumper66.spawnercontrol.SpawnerControl'
+softdepend: [ 'WorldGuard' ]
+api-version: '1.13'
+author: 'stumper66'
+description: '${project.description}'
+website: 'https://github.com/stumper66/SlimeSpawners'
+
+commands:
+  slimespawners:
+    description: 'Manage SpawnerControl'
+    aliases: [ 'sc' ]
+    usage: '/<command> <reload> | <info>'

@@ -1,0 +1,44 @@
+# to disable all functionality, change to false
+enable-spawner-control: true
+
+allowed-worlds:
+  - world
+
+allowed-entity-types:
+  allowed-list: ['world'] # for all worlds use *
+  excluded-list: ['']
+
+# the distance (squared) a player must be near to a spawner to activate it
+player-required-range: 50
+# the minimum spawn delay amount (in ticks)
+min-spawn-delay: 200
+# the minimum spawn delay amount (in ticks)
+max-spawn-delay: 800
+# the maximum amount of similar entities that are allowed to be within player activation range of this spawner
+max-nearby-entities: 4
+# how many mobs attempt to spawn
+spawn-count: 1
+# the radius around which the spawner will attempt to spawn mobs in
+spawn-range: 6
+# the spawner's delay (in ticks)
+spawner-delay: 20
+# if false, mobs will only spawn on solid blocks
+allow-air-spawning: false
+
+# slime specific settings
+# slime-size-min: 1
+# slime-size-max: 4
+
+# worldguard region example below:
+
+# worldguard-regions:
+#  - region_1:
+#    player-required-range: 100
+#    slime-size-min: 1
+#    slime-size-max: 1
+#    spawn-range: 6
+#    min-spawn-delay: 20
+#    max-spawn-delay: 40
+
+#    allowed-entity-types:
+#      allowed-list: ['zombie', 'slime']
