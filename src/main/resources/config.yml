@@ -2,10 +2,11 @@
 enable-spawner-control: true
 
 allowed-worlds:
-  - world
+  allowed-list: ['world'] # for all worlds use *
+  excluded-list: ['']
 
 allowed-entity-types:
-  allowed-list: ['world'] # for all worlds use *
+  allowed-list: ['slime'] # update to a list of entities that will be monitored
   excluded-list: ['']
 
 # the distance (squared) a player must be near to a spawner to activate it
