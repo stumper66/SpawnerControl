@@ -32,7 +32,7 @@ allow-air-spawning: false
 
 # worldguard region example below:
 
-# worldguard-regions:
+worldguard-regions:
 #  - region_1:
 #    player-required-range: 100
 #    slime-size-min: 1
@@ -43,3 +43,8 @@ allow-air-spawning: false
 
 #    allowed-entity-types:
 #      allowed-list: ['zombie', 'slime']
+
+named-spawners:
+#  - name_1:
+#    allowed-entity-types:
+#      allowed-list: ['husk']

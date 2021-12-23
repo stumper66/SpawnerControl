@@ -1,7 +1,7 @@
 package me.stumper66.spawnercontrol.listener;
 
 import me.stumper66.spawnercontrol.SpawnerControl;
-import me.stumper66.spawnercontrol.UpdateOperation;
+import me.stumper66.spawnercontrol.processing.UpdateOperation;
 import org.bukkit.Material;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.event.EventHandler;

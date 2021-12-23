@@ -1,4 +1,4 @@
-package me.stumper66.spawnercontrol;
+package me.stumper66.spawnercontrol.processing;
 
 import org.bukkit.Chunk;
 import org.jetbrains.annotations.NotNull;

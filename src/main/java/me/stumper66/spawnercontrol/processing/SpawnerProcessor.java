@@ -1,8 +1,15 @@
-package me.stumper66.spawnercontrol;
+package me.stumper66.spawnercontrol.processing;
 
 import me.lokka30.microlib.other.VersionUtils;
+import me.stumper66.spawnercontrol.SpawnerControl;
+import me.stumper66.spawnercontrol.SpawnerInfo;
+import me.stumper66.spawnercontrol.SpawnerOptions;
+import me.stumper66.spawnercontrol.SpigotCompat;
+import me.stumper66.spawnercontrol.Utils;
+import me.stumper66.spawnercontrol.WorldGuardManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -38,29 +45,30 @@ public class SpawnerProcessor {
     public SpawnerProcessor(final SpawnerControl main) {
         this.main = main;
         this.allSpawners = new HashMap<>();
-        this.spawnerTracking = new HashMap<>();
+        this.activeSpawners = new HashMap<>();
         this.chunkMappings = new HashMap<>();
         this.worldMappings = new HashMap<>();
         this.spawnerUpdateQueue = new LinkedList<>();
         this.options = new SpawnerOptions();
         this.lastWGCheckTicks = -1;
         this.hasWorldGuard = SpawnerControl.isWorldGuardInstalled();
+        this.spawnerCustomNameKey = new NamespacedKey(main, "spawnerCustomNameKey");
     }
 
     private final SpawnerControl main;
     private @NotNull SpawnerOptions options;
-    private final @NotNull Map<Location, CreatureSpawner> allSpawners;
-    private final @NotNull Map<Location, SpawnerInfo> spawnerTracking;
-    private final @NotNull Map<Long, Set<Location>> chunkMappings;
-    private final @NotNull Map<String, Set<Location>> worldMappings;
+    private final @NotNull Map<BasicLocation, CreatureSpawner> allSpawners;
+    private final @NotNull Map<BasicLocation, SpawnerInfo> activeSpawners;
+    private final @NotNull Map<Long, Set<BasicLocation>> chunkMappings;
+    private final @NotNull Map<String, Set<BasicLocation>> worldMappings;
     private final static int ticksPerCall = 40;
     private int lastWGCheckTicks;
-    private int activeSpawnersCount;
     private final boolean hasWorldGuard;
     private boolean recheckCriteria;
     private final @NotNull Queue<SpawnerUpdateInterface> spawnerUpdateQueue;
     private final static Object queueLock = new Object();
     private final static Object chunkLock = new Object();
+    public final NamespacedKey spawnerCustomNameKey;
 
     public void processSpawners() {
         if (!main.isEnabled) return;
@@ -71,57 +79,59 @@ public class SpawnerProcessor {
         checkUpdateQueue();
         if (Bukkit.getOnlinePlayers().size() == 0) return;
 
-        if (this.spawnerTracking.isEmpty()) {
+        if (this.activeSpawners.isEmpty()) {
             //Utils.logger.info("no tracked spawners to process");
             return;
         }
 
         if (hasWorldGuard && lastWGCheckTicks == -1 || lastWGCheckTicks >= 160){
-            // update roughly every 8 seconds
+            // updates roughly every 8 seconds
             this.lastWGCheckTicks = 0;
-            WorldGuardManager.updateWorlguardOptionsForTrackedSpawners(main, this.spawnerTracking);
+            WorldGuardManager.updateWorlguardOptionsForTrackedSpawners(main, this.activeSpawners);
         }
         else if (hasWorldGuard)
             this.lastWGCheckTicks += ticksPerCall;
 
-        final Set<Location> spawnersToCheck = getSpawnersWithinPlayerActivationRange();
-        //Utils.logger.info("spawners to check: " + spawnersToCheck.size());
-        for (final Location location : spawnersToCheck) {
-            final SpawnerInfo info = spawnerTracking.get(location);
+        final Set<BasicLocation> spawnersToCheck = getSpawnersWithinPlayerActivationRange();
+        Utils.logger.info("spawners to check: " + spawnersToCheck.size());
+        for (final BasicLocation location : spawnersToCheck) {
+            final SpawnerInfo info = activeSpawners.get(location);
             if (info == null) continue;
 
-            final CreatureSpawner cs = info.cs;
-
-            if (shouldSpawnerSpawnNow(cs)) {
+            if (shouldSpawnerSpawnNow(info)) {
+                Utils.logger.info("should spawn now");
                 final SpawnerOptions opts = info.options != null ?
                         info.options : options;
                 spawnEntities(info, opts);
 
-                spawnerTracking.get(cs.getLocation()).resetTimeLeft(options);
+                info.resetTimeLeft(options);
             }
         }
     }
 
     @NotNull
-    private Set<Location> getSpawnersWithinPlayerActivationRange(){
-        final Set<Location> spawners = new HashSet<>();
+    private Set<BasicLocation> getSpawnersWithinPlayerActivationRange(){
+        final Set<BasicLocation> spawners = new HashSet<>();
 
         for (final Player player : Bukkit.getOnlinePlayers()){
-            if (!worldMappings.containsKey(player.getWorld().getName())) continue;
+            if (!worldMappings.containsKey(player.getWorld().getName()))
+                continue;
 
-            for (final Location location : worldMappings.get(player.getWorld().getName())){
-                if (spawners.contains(location)) continue;
-                final SpawnerInfo info = spawnerTracking.get(location);
+            for (final BasicLocation basicLocation : worldMappings.get(player.getWorld().getName())){
+                if (spawners.contains(basicLocation))
+                    continue;
+
+                final SpawnerInfo info = activeSpawners.get(basicLocation);
                 if (info == null || !info.isChunkLoaded || info.options == null)
                     continue;
 
-                final long distance = (long) Math.ceil(info.cs.getLocation().distanceSquared(player.getLocation()));
+                final long distance = (long) Math.ceil(info.getCs().getLocation().distanceSquared(player.getLocation()));
                 if (distance <= info.options.playerRequiredRange)
-                    spawners.add(location);
+                    spawners.add(basicLocation);
             }
 
             // don't check the rest of the players if all active spawners have at least one player within range
-            if (spawners.size() == this.activeSpawnersCount) break;
+            if (spawners.size() == this.activeSpawners.size()) break;
         }
 
         return spawners;
@@ -130,9 +140,10 @@ public class SpawnerProcessor {
     private void recheckSpawnerCriteria(){
         this.recheckCriteria = false;
 
-        for (final CreatureSpawner cs : this.allSpawners.values()){
+        for (final BasicLocation basicLocation : this.allSpawners.keySet()){
+            final CreatureSpawner cs = this.allSpawners.get(basicLocation);
             if (main.spawnerOptions.allowedWorlds.isEnabledInList(cs.getWorld().getName()))
-                trackSpawnerIfApplicable(cs, false);
+                evaluateTrackingCriteriaForSpawner(cs, basicLocation);
         }
     }
 
@@ -155,6 +166,9 @@ public class SpawnerProcessor {
                 case CHUNK_REFRESH:
                     processChunk((SpawnerChunkUpdate) itemInterface);
                     break;
+                case CUSTOM_NAME_CHANGE:
+                    processSpawnerRename((SpawnerUpdateItem) itemInterface);
+                    break;
                 default: // update and add
                     processSpawnerOrChunkAdd((SpawnerUpdateItem) itemInterface);
                     break;
@@ -162,15 +176,30 @@ public class SpawnerProcessor {
         }
     }
 
+    private void processSpawnerRename(final @NotNull SpawnerUpdateItem item){
+        final SpawnerInfo info = activeSpawners.get(item.basicLocation);
+        if (info != null){
+            info.clearCache();
+            info.setCs(item.cs);
+            Utils.logger.info("reevaluating tracked spawner");
+        }
+        else
+            Utils.logger.info("evaluating UNtracked spawner");
+
+        evaluateTrackingCriteriaForSpawner(item.cs, item.basicLocation);
+    }
+
     private void removeSpawner(final @NotNull SpawnerUpdateItem item){
-        this.spawnerTracking.remove(item.cs.getLocation());
+        this.activeSpawners.remove(item.basicLocation);
         if (this.chunkMappings.containsKey(item.cs.getLocation().getChunk().getChunkKey()))
-            this.chunkMappings.get(item.cs.getLocation().getChunk().getChunkKey()).remove(item.cs.getLocation());
-        this.allSpawners.remove(item.cs.getLocation());
+            this.chunkMappings.get(item.cs.getLocation().getChunk().getChunkKey()).remove(item.basicLocation);
+        if (this.worldMappings.containsKey(item.cs.getLocation().getWorld().getName()))
+            this.worldMappings.get(item.cs.getLocation().getWorld().getName()).remove(item.basicLocation);
+        this.allSpawners.remove(item.basicLocation);
     }
 
     private void processChunk(final @NotNull SpawnerChunkUpdate spawnerChunkUpdate){
-        Set<Location> locations;
+        Set<BasicLocation> locations;
 
         synchronized (chunkLock) {
             if (!this.chunkMappings.containsKey(spawnerChunkUpdate.chunkId)) return;
@@ -179,36 +208,46 @@ public class SpawnerProcessor {
 
         if (locations == null) return;
 
-        for (final Location location : locations){
+        for (final BasicLocation location : locations){
             if (spawnerChunkUpdate.getOperation() == UpdateOperation.CHUNK_REFRESH){
                 final CreatureSpawner cs = this.allSpawners.get(location);
                 if (cs == null) continue;
 
-                trackSpawnerIfApplicable(cs, false);
+                evaluateTrackingCriteriaForSpawner(cs, location);
             }
             else {
                 // chunk unloaded
-                if (!this.spawnerTracking.containsKey(location)) continue;
+                if (!this.activeSpawners.containsKey(location)) continue;
 
-                this.spawnerTracking.get(location).isChunkLoaded = false;
-                this.activeSpawnersCount--;
+                this.activeSpawners.get(location).isChunkLoaded = false;
             }
         }
     }
 
     private void processSpawnerOrChunkAdd(final @NotNull SpawnerUpdateItem item){
-        this.allSpawners.put(item.cs.getLocation(), item.cs);
-        final boolean isAdd = item.getOperation() == UpdateOperation.ADD;
+        this.allSpawners.put(item.basicLocation, item.cs);
 
-        trackSpawnerIfApplicable(item.cs, isAdd);
+        evaluateTrackingCriteriaForSpawner(item.cs, item.basicLocation);
     }
 
-    private void trackSpawnerIfApplicable(final @NotNull CreatureSpawner cs, final boolean isAdd){
-        SpawnerInfo info = spawnerTracking.get(cs.getLocation());
+    private void evaluateTrackingCriteriaForSpawner(final @NotNull CreatureSpawner cs, final @NotNull BasicLocation basicLocation){
+        SpawnerInfo info = activeSpawners.get(basicLocation);
         if (info == null)
             info = new SpawnerInfo(cs, options);
-        else
-            info.isChunkLoaded = true;
+
+        info.isChunkLoaded = cs.getLocation().isChunkLoaded();
+
+        if (main.namedSpawnerOptions != null) {
+            final String spawnerCustomName = info.getSpawnerCustomName(main);
+            if (spawnerCustomName != null) {
+                Utils.logger.info(Utils.showSpawnerLocation(cs) + ", customName: " + spawnerCustomName + ", result: " +
+                        (main.namedSpawnerOptions.containsKey(spawnerCustomName)));
+            }
+            if (spawnerCustomName != null && main.namedSpawnerOptions.containsKey(spawnerCustomName))
+                info.options = main.namedSpawnerOptions.get(spawnerCustomName);
+            else
+                info.options = main.spawnerOptions;
+        }
 
         if (hasWorldGuard)
             WorldGuardManager.updateWorlguardOptionsForSpawner(main, info);
@@ -216,30 +255,35 @@ public class SpawnerProcessor {
         if (info.options == null)
             info.options = this.options;
 
+        final Set<BasicLocation> spawnersInChunk = this.chunkMappings.computeIfAbsent(cs.getLocation().getChunk().getChunkKey(), k -> new HashSet<>());
+        spawnersInChunk.add(info.getBasicLocation());
+
+        final Set<BasicLocation> spawnersInWorld = this.worldMappings.computeIfAbsent(cs.getLocation().getWorld().getName(), k -> new HashSet<>());
+        spawnersInWorld.add(info.getBasicLocation());
+
+        final String name = info.getSpawnerCustomName(main);
+        if (name != null && name.startsWith("test")){
+            final boolean test = info.options.allowedEntityTypes.isEnabledInList(cs.getSpawnedType());
+            Utils.logger.info("name: " + name + ", is allowed: " + test + ", " + info.options);
+        }
+
         if (info.options.allowedEntityTypes.isEnabledInList(cs.getSpawnedType())) {
-            //Utils.logger.info("now tracking spawner: " + Utils.showSpawnerLocation(cs));
 
-            this.spawnerTracking.put(cs.getLocation(), info);
-
-            if (isAdd) {
-                final Set<Location> spawnersInChunk = this.chunkMappings.computeIfAbsent(cs.getLocation().getChunk().getChunkKey(), k -> new HashSet<>());
-                spawnersInChunk.add(cs.getLocation());
-
-                final Set<Location> spawnersInWorld = this.worldMappings.computeIfAbsent(cs.getLocation().getWorld().getName(), k -> new HashSet<>());
-                spawnersInWorld.add(cs.getLocation());
+            if (info.isChunkLoaded && !this.activeSpawners.containsKey(info.getBasicLocation())) {
+                //Utils.logger.info("now tracking spawner: " + Utils.showSpawnerLocation(cs));
+                this.activeSpawners.put(info.getBasicLocation(), info);
+            }
+            else if (!info.isChunkLoaded){
+                this.activeSpawners.remove(info.getBasicLocation());
             }
 
-            this.activeSpawnersCount++;
         }
-        else if (this.spawnerTracking.containsKey(cs.getLocation())) {
-//            if (!isAdd)
-//                Utils.logger.info("no longer tracking spawner: " + Utils.showSpawnerLocation(cs));
-            this.spawnerTracking.remove(cs.getLocation());
-            if (this.chunkMappings.containsKey(cs.getLocation().getChunk().getChunkKey()))
-                this.chunkMappings.get(cs.getLocation().getChunk().getChunkKey()).remove(cs.getLocation());
-            if (this.worldMappings.containsKey(cs.getLocation().getWorld().getName()))
-                this.worldMappings.get(cs.getLocation().getWorld().getName()).remove(cs.getLocation());
-            this.activeSpawnersCount--;
+        else if (this.activeSpawners.containsKey(info.getBasicLocation())) {
+            Utils.logger.info("no longer tracking spawner: " + Utils.showSpawnerLocation(cs));
+            this.activeSpawners.remove(info.getBasicLocation());
+        }
+        else if (name != null && name.startsWith("test")){
+            Utils.logger.info("test 10");
         }
     }
 
@@ -262,20 +306,21 @@ public class SpawnerProcessor {
 
     @NotNull
     public Collection<SpawnerInfo> getMonitoredSpawners(){
-        return this.spawnerTracking.values();
+        return this.activeSpawners.values();
     }
 
-    private boolean shouldSpawnerSpawnNow(final @NotNull CreatureSpawner cs) {
-        SpawnerInfo info;
+    public void spawnerGotRenamed(final @NotNull CreatureSpawner cs, final @Nullable String oldName, final @Nullable String newName){
+        final SpawnerUpdateItem update = new SpawnerUpdateItem(cs, UpdateOperation.CUSTOM_NAME_CHANGE);
+        update.oldName = oldName;
+        update.newName = newName;
 
-        if (!this.spawnerTracking.containsKey(cs.getLocation())){
-            info = new SpawnerInfo(cs, options);
-            this.spawnerTracking.put(cs.getLocation(), info);
+        synchronized (queueLock){
+            this.spawnerUpdateQueue.add(update);
         }
-        else {
-            info = this.spawnerTracking.get(cs.getLocation());
-            info.delayTimeLeft -= ticksPerCall;
-        }
+    }
+
+    private boolean shouldSpawnerSpawnNow(final @NotNull SpawnerInfo info) {
+        info.delayTimeLeft -= ticksPerCall;
 
         return info.delayTimeLeft <= 0;
     }
@@ -290,7 +335,7 @@ public class SpawnerProcessor {
     private void spawnEntities(final @NotNull SpawnerInfo info, final @NotNull SpawnerOptions options) {
         int similarEntityCount = 0;
 
-        final Future<Collection<Entity>> futureEntities = getNearbyEntity_NonAsync(info.cs.getLocation(), options);
+        final Future<Collection<Entity>> futureEntities = getNearbyEntity_NonAsync(info.getCs().getLocation(), options);
         Collection<Entity> nearbyEntities;
         try {
             nearbyEntities = futureEntities.get(100L, TimeUnit.MILLISECONDS);
@@ -301,12 +346,12 @@ public class SpawnerProcessor {
         }
 
         for (final Entity entity : nearbyEntities){
-            if (entity.getType() == info.cs.getSpawnedType())
+            if (entity.getType() == info.getCs().getSpawnedType())
                 similarEntityCount++;
         }
 
         if (similarEntityCount >= options.maxNearbyEntities) {
-            //Utils.logger.info("too many similar entities - " + similarEntityCount + ", " + Utils.showSpawnerLocation(info.cs));
+            Utils.logger.info("too many similar entities - " + similarEntityCount + ", " + Utils.showSpawnerLocation(info.getCs()));
             return;
         }
 
@@ -322,18 +367,18 @@ public class SpawnerProcessor {
     }
 
     private void spawnEntity_NonAsync(final @NotNull SpawnerInfo info, int similarEntityCount){
-        final CreatureSpawner cs = info.cs;
+        final CreatureSpawner cs = info.getCs();
         if (info.options == null) info.options = this.options;
 
         for (int i = 0; i < info.options.spawnCount; i++) {
             final Location spawnLocation = getSpawnLocation(cs.getLocation());
             if (spawnLocation == null) {
-                //Utils.logger.info("spawn location was null: " + Utils.showSpawnerLocation(cs));
+                Utils.logger.info("spawn location was null: " + Utils.showSpawnerLocation(cs));
                 continue;
             }
 
-//            Utils.logger.info(String.format("spawning %s at %s, %s, %s" ,
-//                    cs.getSpawnedType().name(), spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ()));
+            Utils.logger.info(String.format("spawning %s at %s, %s, %s" ,
+                    cs.getSpawnedType().name(), spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ()));
 
             // if you're running spigot then they will spawn in with default spawn reason
             // if running paper they will spawn in with spawner spawn reason
@@ -451,6 +496,6 @@ public class SpawnerProcessor {
     }
 
     public int getActiveSpawnersCount(){
-        return this.activeSpawnersCount;
+        return this.activeSpawners.size();
     }
 }

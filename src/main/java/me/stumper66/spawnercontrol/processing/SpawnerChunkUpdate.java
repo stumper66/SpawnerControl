@@ -1,5 +1,7 @@
-package me.stumper66.spawnercontrol;
+package me.stumper66.spawnercontrol.processing;
 
+import me.stumper66.spawnercontrol.processing.SpawnerUpdateInterface;
+import me.stumper66.spawnercontrol.processing.UpdateOperation;
 import org.jetbrains.annotations.NotNull;
 
 public class SpawnerChunkUpdate implements SpawnerUpdateInterface {

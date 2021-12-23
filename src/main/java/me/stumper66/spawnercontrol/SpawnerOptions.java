@@ -29,6 +29,7 @@ public class SpawnerOptions {
     public Integer slimeSizeMin;
     public Integer slimeSizeMax;
     public boolean allowAirSpawning;
+    public String customNameMatch;
     public @NotNull CachedModalList<String> allowedWorlds;
     public @NotNull CachedModalList<EntityType> allowedEntityTypes;
 

@@ -1,16 +1,21 @@
 package me.stumper66.spawnercontrol;
 
+import me.stumper66.spawnercontrol.command.CommandProcessor;
 import me.stumper66.spawnercontrol.listener.BlockBreakListener;
 import me.stumper66.spawnercontrol.listener.BlockPlaceListener;
 import me.stumper66.spawnercontrol.listener.ChunkLoadListener;
 import me.stumper66.spawnercontrol.listener.PlayerInteractEventListener;
+import me.stumper66.spawnercontrol.processing.BasicLocation;
+import me.stumper66.spawnercontrol.processing.SpawnerProcessor;
 import org.bukkit.Bukkit;
+import org.bukkit.block.CreatureSpawner;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class SpawnerControl extends JavaPlugin {
@@ -18,7 +23,9 @@ public class SpawnerControl extends JavaPlugin {
     public boolean isEnabled;
     public SpawnerProcessor spawnerProcessor;
     public Map<String, SpawnerOptions> wgRegionOptions;
+    public Map<String, SpawnerOptions> namedSpawnerOptions;
     public SpawnerOptions spawnerOptions;
+    public Map<BasicLocation, CreatureSpawner> mapTest = new HashMap<>();
     private BukkitRunnable mainTask;
 
     @Override
@@ -68,7 +75,7 @@ public class SpawnerControl extends JavaPlugin {
         this.mainTask.runTaskTimerAsynchronously(this, 100, 40);
     }
 
-    void loadConfig(boolean isReload) {
+    public void loadConfig(boolean isReload) {
         this.settings = FileLoader.loadConfig(this);
         this.isEnabled = settings.getBoolean("enable-spawner-control", true);
 
@@ -78,7 +85,7 @@ public class SpawnerControl extends JavaPlugin {
             spawnerProcessor.configReloaded();
     }
 
-    static boolean isWorldGuardInstalled() {
+    public static boolean isWorldGuardInstalled() {
         return Bukkit.getPluginManager().getPlugin("WorldGuard") != null;
     }
 }

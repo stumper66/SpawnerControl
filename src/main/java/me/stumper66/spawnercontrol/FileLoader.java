@@ -35,8 +35,9 @@ public class FileLoader {
         final SpawnerOptions defaults = new SpawnerOptions();
 
         final SpawnerOptions spawnerOptions = parseSpawnerOptions(settings, defaults);
-
-        main.wgRegionOptions = parseWorldGuardRegions(settings.get("worldguard-regions"), defaults);
+        main.wgRegionOptions = parseConfigRegions(settings.get("worldguard-regions"), defaults, true);
+        main.namedSpawnerOptions = parseConfigRegions(settings.get("named-spawners"), defaults, false);
+        Utils.logger.info("test: " + main.namedSpawnerOptions);
         main.spawnerOptions = spawnerOptions;
     }
 
@@ -66,29 +67,31 @@ public class FileLoader {
     }
 
     @Nullable
-    private static Map<String, SpawnerOptions> parseWorldGuardRegions(final @Nullable Object wgRegions, final @NotNull SpawnerOptions defaults){
-        if (wgRegions == null) return null;
+    private static Map<String, SpawnerOptions> parseConfigRegions(final @Nullable Object configRegion, final @NotNull SpawnerOptions defaults, final boolean isWG){
+        if (configRegion == null) return null;
 
-        final Map<String, SpawnerOptions> wgRegionOptions = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        final Map<String, SpawnerOptions> regionOptions = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
         //noinspection unchecked
-        for (final LinkedHashMap<String, Object> hashMap : (List<LinkedHashMap<String, Object>>) (wgRegions)) {
+        for (final LinkedHashMap<String, Object> hashMap : (List<LinkedHashMap<String, Object>>) (configRegion)) {
             final ConfigurationSection cs = objTo_CS(hashMap);
             if (cs == null) return null;
 
-            String wgName = null;
+            String keyName = null;
             for (final String hashKey : hashMap.keySet()){
-                wgName = hashKey;
+                keyName = hashKey;
                 break;
             }
 
-            if (wgName == null) continue;
+            if (keyName == null) continue;
             final SpawnerOptions opts = parseSpawnerOptions(cs, defaults);
+            if (!isWG)
+                opts.customNameMatch = keyName;
 
-            wgRegionOptions.put(wgName, opts);
+            regionOptions.put(keyName, opts);
         }
 
-        return wgRegionOptions;
+        return regionOptions;
     }
 
     @Nullable

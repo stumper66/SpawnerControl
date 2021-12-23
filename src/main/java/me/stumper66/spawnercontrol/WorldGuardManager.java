@@ -7,10 +7,9 @@ import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import com.sk89q.worldguard.protection.regions.RegionContainer;
+import me.stumper66.spawnercontrol.processing.BasicLocation;
 import org.bukkit.Location;
-import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -41,10 +40,10 @@ public class WorldGuardManager {
         return wg_Regions;
     }
 
-    public static void updateWorlguardOptionsForTrackedSpawners(final @NotNull SpawnerControl main, final @NotNull Map<Location, SpawnerInfo> spawnerTracking){
+    public static void updateWorlguardOptionsForTrackedSpawners(final @NotNull SpawnerControl main, final @NotNull Map<BasicLocation, SpawnerInfo> spawnerTracking){
         final boolean hasDefinedRegions = main.wgRegionOptions != null && !main.wgRegionOptions.isEmpty();
 
-        for (final Location location : spawnerTracking.keySet()){
+        for (final BasicLocation location : spawnerTracking.keySet()){
             final SpawnerInfo sInfo = spawnerTracking.get(location);
 
             if (!hasDefinedRegions){
@@ -59,7 +58,7 @@ public class WorldGuardManager {
     public static void updateWorlguardOptionsForSpawner(final @NotNull SpawnerControl main, final @NotNull SpawnerInfo spawnerInfo){
         spawnerInfo.matchedWGRegion = null;
 
-        for (final String foundRegion : getWorldGuardRegionsForLocation(spawnerInfo.cs.getLocation())){
+        for (final String foundRegion : getWorldGuardRegionsForLocation(spawnerInfo.getCs().getLocation())){
             if (!main.wgRegionOptions.containsKey(foundRegion)) continue;
 
             spawnerInfo.options = main.wgRegionOptions.get(foundRegion);
