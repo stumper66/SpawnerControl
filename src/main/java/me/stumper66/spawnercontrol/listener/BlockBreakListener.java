@@ -23,6 +23,6 @@ public class BlockBreakListener implements Listener {
         if (!main.spawnerOptions.allowedWorlds.isEnabledInList(event.getPlayer().getWorld().getName())) return;
 
         final CreatureSpawner cs = (CreatureSpawner) event.getBlock().getState();
-        main.spawnerProcessor.updateSpawner(cs, UpdateOperation.REMOVE);
+        main.updateProcessor.updateSpawner(cs, UpdateOperation.REMOVE);
     }
 }

@@ -22,10 +22,13 @@ import java.util.Collections;
 import java.util.List;
 
 public class CommandProcessor implements CommandExecutor, TabCompleter  {
-    public CommandProcessor(final SpawnerControl main){
+    public CommandProcessor(final SpawnerControl main) {
         this.main = main;
+        this.debugCommand = new DebugCommand(main);
     }
+
     private final SpawnerControl main;
+    private final DebugCommand debugCommand;
 
     @Override
     public boolean onCommand(final @NotNull CommandSender sender, final @NotNull Command cmd, final @NotNull String label, final @NotNull String @NotNull [] args) {
@@ -35,6 +38,9 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
         }
 
         switch (args[0].toLowerCase()){
+            case "debug":
+                debugCommand.onCommand(sender, label, args);
+                break;
             case "reload":
                 doReload(sender);
                 break;
@@ -85,12 +91,6 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
             sender.sendMessage("You must be looking at a spawner first");
             return;
         }
-
-        final BasicLocation bl = new BasicLocation(cs.getLocation());
-        Utils.logger.info("adding " + bl);
-        main.mapTest.put(bl, cs);
-
-        Utils.logger.info(main.mapTest.toString());
     }
 
     private void showOrUpdateLabel(@NotNull final CommandSender sender, final @NotNull String label, final @NotNull String @NotNull [] args){
@@ -142,7 +142,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
         }
 
         info.setSpawnerCustomName(newName, main);
-        main.spawnerProcessor.spawnerGotRenamed(cs, customName, newName);
+        main.updateProcessor.spawnerGotRenamed(cs, customName, newName);
         sender.sendMessage("spawner name updated to: " + newName);
     }
 
@@ -186,6 +186,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
     private void showSpawners(@NotNull final CommandSender sender){
         if (!hasPermission("spawnercontrol.spawners", sender)) return;
 
+        sender.sendMessage("All known spawners count: " + main.updateProcessor.getAllKnownSpawnersCount());
         final Collection<SpawnerInfo> spawnerInfos = main.spawnerProcessor.getMonitoredSpawners();
         if (spawnerInfos.isEmpty()){
             sender.sendMessage("There are no spawners currently monitored");
@@ -223,8 +224,10 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
     @Nullable
     @Override
     public List<String> onTabComplete(final @NotNull CommandSender commandSender, final @NotNull Command command, final @NotNull String label, final @NotNull String @NotNull [] args) {
-        if (args.length == 1)
-            return List.of("reload", "info", "label", "spawners", "disable", "enable");
+        if (args.length > 1 && "debug".equals(args[0]))
+            return debugCommand.onTabComplete(commandSender, command, label, args);
+        else if (args.length == 1)
+            return List.of("debug", "reload", "info", "label", "spawners", "disable", "enable");
 
         return Collections.emptyList();
     }

@@ -5,32 +5,33 @@ import me.stumper66.spawnercontrol.listener.BlockBreakListener;
 import me.stumper66.spawnercontrol.listener.BlockPlaceListener;
 import me.stumper66.spawnercontrol.listener.ChunkLoadListener;
 import me.stumper66.spawnercontrol.listener.PlayerInteractEventListener;
-import me.stumper66.spawnercontrol.processing.BasicLocation;
 import me.stumper66.spawnercontrol.processing.SpawnerProcessor;
+import me.stumper66.spawnercontrol.processing.UpdateProcessor;
 import org.bukkit.Bukkit;
-import org.bukkit.block.CreatureSpawner;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class SpawnerControl extends JavaPlugin {
     public YamlConfiguration settings;
     public boolean isEnabled;
     public SpawnerProcessor spawnerProcessor;
+    public UpdateProcessor updateProcessor;
     public Map<String, SpawnerOptions> wgRegionOptions;
     public Map<String, SpawnerOptions> namedSpawnerOptions;
     public SpawnerOptions spawnerOptions;
-    public Map<BasicLocation, CreatureSpawner> mapTest = new HashMap<>();
+    public DebugInfo debugInfo;
     private BukkitRunnable mainTask;
 
     @Override
     public void onEnable() {
         spawnerProcessor = new SpawnerProcessor(this);
+        updateProcessor = new UpdateProcessor(spawnerProcessor);
+        debugInfo = new DebugInfo();
 
         registerCommands();
         loadConfig(false);
@@ -82,7 +83,7 @@ public class SpawnerControl extends JavaPlugin {
         FileLoader.parseConfigFile(this, settings);
 
         if (isReload)
-            spawnerProcessor.configReloaded();
+            updateProcessor.configReloaded();
     }
 
     public static boolean isWorldGuardInstalled() {

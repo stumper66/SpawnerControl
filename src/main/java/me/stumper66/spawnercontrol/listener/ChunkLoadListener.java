@@ -23,8 +23,8 @@ public class ChunkLoadListener implements Listener {
     void onChunkLoad(final @NotNull ChunkLoadEvent event){
         if (!main.spawnerOptions.allowedWorlds.isEnabledInList(event.getWorld().getName())) return;
 
-        if (main.spawnerProcessor.hasAlreadyProcessedChunk(event.getChunk().getChunkKey())){
-            main.spawnerProcessor.updateChunk(event.getChunk().getChunkKey(), UpdateOperation.CHUNK_REFRESH);
+        if (main.updateProcessor.hasAlreadyProcessedChunk(event.getChunk().getChunkKey())){
+            main.updateProcessor.updateChunk(event.getChunk().getChunkKey(), UpdateOperation.CHUNK_REFRESH);
             return;
         }
 
@@ -42,7 +42,7 @@ public class ChunkLoadListener implements Listener {
                     final CreatureSpawner cs = (CreatureSpawner) world.getBlockAt(x, y, z).getState();
                     //Utils.logger.info("ChunkLoadEvent: found spawner of type: " + cs.getSpawnedType().name() + ", " + cs.getLocation());
 
-                    main.spawnerProcessor.updateSpawner(cs, UpdateOperation.ADD);
+                    main.updateProcessor.updateSpawner(cs, UpdateOperation.ADD);
                 }
             }
         }
@@ -52,6 +52,6 @@ public class ChunkLoadListener implements Listener {
     void onChunkUnload(final @NotNull ChunkUnloadEvent event){
         if (!main.spawnerOptions.allowedWorlds.isEnabledInList(event.getWorld().getName())) return;
 
-        main.spawnerProcessor.updateChunk(event.getChunk().getChunkKey(), UpdateOperation.CHUNK_UNLOADED);
+        main.updateProcessor.updateChunk(event.getChunk().getChunkKey(), UpdateOperation.CHUNK_UNLOADED);
     }
 }

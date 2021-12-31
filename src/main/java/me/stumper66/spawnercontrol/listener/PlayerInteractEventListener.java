@@ -25,6 +25,6 @@ public class PlayerInteractEventListener implements Listener {
         if (event.getClickedBlock() == null || event.getClickedBlock().getType() != Material.SPAWNER) return;
 
         final CreatureSpawner cs = (CreatureSpawner) event.getClickedBlock().getState();
-        main.spawnerProcessor.updateSpawner(cs, UpdateOperation.UPDATE);
+        main.updateProcessor.updateSpawner(cs, UpdateOperation.UPDATE);
     }
 }

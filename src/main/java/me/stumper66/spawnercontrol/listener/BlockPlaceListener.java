@@ -40,7 +40,7 @@ public class BlockPlaceListener implements Listener {
 
     private void checkCreatureSpawnerDelayed(final @NotNull Block block){
         final CreatureSpawner cs = (CreatureSpawner) block.getState();
-        main.spawnerProcessor.updateSpawner(cs, UpdateOperation.ADD);
+        main.updateProcessor.updateSpawner(cs, UpdateOperation.ADD);
         //Utils.logger.info("logged new spawner");
     }
 }
