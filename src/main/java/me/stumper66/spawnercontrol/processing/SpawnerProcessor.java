@@ -1,6 +1,7 @@
 package me.stumper66.spawnercontrol.processing;
 
 import me.lokka30.microlib.other.VersionUtils;
+import me.stumper66.spawnercontrol.DebugTypes;
 import me.stumper66.spawnercontrol.SpawnerControl;
 import me.stumper66.spawnercontrol.SpawnerInfo;
 import me.stumper66.spawnercontrol.SpawnerOptions;
@@ -67,11 +68,7 @@ public class SpawnerProcessor {
 
         updateProcessor.processUpdates();
         if (Bukkit.getOnlinePlayers().size() == 0) return;
-
-        if (this.activeSpawners.isEmpty()) {
-            //Utils.logger.info("no tracked spawners to process");
-            return;
-        }
+        if (this.activeSpawners.isEmpty()) return;
 
         if (hasWorldGuard && lastWGCheckTicks == -1 || lastWGCheckTicks >= 160){
             // updates roughly every 8 seconds
@@ -82,13 +79,16 @@ public class SpawnerProcessor {
             this.lastWGCheckTicks += ticksPerCall;
 
         final Set<BasicLocation> spawnersToCheck = getSpawnersWithinPlayerActivationRange();
-        Utils.logger.info("spawners to check: " + spawnersToCheck.size());
+        if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugTypes.ACTIVE_SPAWNERS))
+            Utils.logger.info("player activated spawners count: " + spawnersToCheck.size());
+
         for (final BasicLocation location : spawnersToCheck) {
             final SpawnerInfo info = activeSpawners.get(location);
             if (info == null) continue;
 
             if (shouldSpawnerSpawnNow(info)) {
-                Utils.logger.info("should spawn now");
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.ACTIVE_SPAWNERS, info))
+                    Utils.logger.info("attempting spawn from " + Utils.showSpawnerLocation(info.getCs()));
                 final SpawnerOptions opts = info.options != null ?
                         info.options : options;
                 spawnEntities(info, opts);
@@ -164,7 +164,8 @@ public class SpawnerProcessor {
         }
 
         if (similarEntityCount >= options.maxNearbyEntities) {
-            Utils.logger.info("too many similar entities - " + similarEntityCount + ", " + Utils.showSpawnerLocation(info.getCs()));
+            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.SPAWN_ATTEMPT_FAILED, info))
+                Utils.logger.info("too many similar entities - " + similarEntityCount + ", " + Utils.showSpawnerLocation(info.getCs()));
             return;
         }
 
@@ -186,12 +187,15 @@ public class SpawnerProcessor {
         for (int i = 0; i < info.options.spawnCount; i++) {
             final Location spawnLocation = getSpawnLocation(cs.getLocation());
             if (spawnLocation == null) {
-                Utils.logger.info("spawn location was null: " + Utils.showSpawnerLocation(cs));
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.SPAWN_ATTEMPT_FAILED, info))
+                    Utils.logger.info("Could not find a suitable spawn location: " + Utils.showSpawnerLocation(cs));
                 continue;
             }
 
-            Utils.logger.info(String.format("spawning %s at %s, %s, %s" ,
-                    cs.getSpawnedType().name(), spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ()));
+            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.SPAWN_ATTEMPT_SUCCESS, info)) {
+                Utils.logger.info(String.format("spawning %s at %s, %s, %s",
+                        cs.getSpawnedType().name(), spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ()));
+            }
 
             // if you're running spigot then they will spawn in with default spawn reason
             // if running paper they will spawn in with spawner spawn reason
@@ -212,14 +216,14 @@ public class SpawnerProcessor {
                         useMin :
                         ThreadLocalRandom.current().nextInt(useMin, useMax + 1);
 
-                //Utils.logger.info("setting slime size to " + useSize);
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.ENTITY_SPECIFIC, info))
+                    Utils.logger.info("setting slime size to " + useSize + ", " + Utils.showSpawnerLocation(info.getCs()));
                 slime.setSize(useSize);
             }
 
             similarEntityCount++;
             if (similarEntityCount >= info.options.maxNearbyEntities) break;
         }
-
     }
 
     @NotNull

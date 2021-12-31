@@ -1,6 +1,7 @@
 package me.stumper66.spawnercontrol.listener;
 
 import me.stumper66.spawnercontrol.SpawnerControl;
+import me.stumper66.spawnercontrol.Utils;
 import me.stumper66.spawnercontrol.processing.UpdateOperation;
 import org.bukkit.Material;
 import org.bukkit.block.CreatureSpawner;
@@ -23,6 +24,8 @@ public class BlockBreakListener implements Listener {
         if (!main.spawnerOptions.allowedWorlds.isEnabledInList(event.getPlayer().getWorld().getName())) return;
 
         final CreatureSpawner cs = (CreatureSpawner) event.getBlock().getState();
+        if (main.debugInfo.debugIsEnabled)
+            Utils.logger.info("Spawner destroyed: " + Utils.showSpawnerLocation(cs));
         main.updateProcessor.updateSpawner(cs, UpdateOperation.REMOVE);
     }
 }

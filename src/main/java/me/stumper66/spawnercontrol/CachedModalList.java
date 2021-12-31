@@ -1,9 +1,7 @@
 package me.stumper66.spawnercontrol;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -19,9 +17,9 @@ public class CachedModalList<T extends Comparable<T>> implements Cloneable {
     }
 
     @NotNull
-    public Set<T> allowedList;
+    public final Set<T> allowedList;
     @NotNull
-    public Set<T> excludedList;
+    public final Set<T> excludedList;
     public boolean doMerge;
     public boolean allowAll;
     public boolean excludeAll;

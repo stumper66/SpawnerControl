@@ -10,7 +10,7 @@ public class SpawnerChunkUpdate implements SpawnerUpdateInterface {
         this.operation = operation;
     }
 
-    public long chunkId;
+    public final long chunkId;
     private final UpdateOperation operation;
 
     public @NotNull UpdateOperation getOperation() {

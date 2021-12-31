@@ -19,7 +19,7 @@ public class SpawnerInfo {
 
     public int delayTimeLeft;
     public @Nullable SpawnerOptions options;
-    public String matchedWGRegion;
+    public @Nullable String matchedWGRegion;
     public boolean isChunkLoaded;
     private @NotNull CreatureSpawner cs;
     private @NotNull BasicLocation basicLocation;

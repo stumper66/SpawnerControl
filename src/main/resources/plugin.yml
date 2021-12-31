@@ -8,7 +8,7 @@ description: '${project.description}'
 website: 'https://github.com/stumper66/SlimeSpawners'
 
 commands:
-  slimespawners:
+  spawnercontrol:
     description: 'Manage SpawnerControl'
     aliases: [ 'sc' ]
-    usage: '/<command> <reload> | <info>'
+    usage: '/<command> <debug>|<reload>|<info>|<spawners>|<enable>|<disable>|<label>'

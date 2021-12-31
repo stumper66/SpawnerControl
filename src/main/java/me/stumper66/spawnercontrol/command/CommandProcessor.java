@@ -1,7 +1,6 @@
 package me.stumper66.spawnercontrol.command;
 
 import me.lokka30.microlib.messaging.MessageUtils;
-import me.stumper66.spawnercontrol.processing.BasicLocation;
 import me.stumper66.spawnercontrol.SpawnerControl;
 import me.stumper66.spawnercontrol.SpawnerInfo;
 import me.stumper66.spawnercontrol.Utils;
@@ -39,7 +38,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
 
         switch (args[0].toLowerCase()){
             case "debug":
-                debugCommand.onCommand(sender, label, args);
+                debugCommand.onCommand(sender, args);
                 break;
             case "reload":
                 doReload(sender);
@@ -59,38 +58,12 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
             case "label":
                 showOrUpdateLabel(sender, label, args);
                 break;
-            case "test":
-                doTest(sender);
-                break;
             default:
                 showSyntax(sender, label);
                 break;
         }
 
         return true;
-    }
-
-    private void doTest(@NotNull final CommandSender sender){
-        if (!(sender instanceof Player)){
-            sender.sendMessage("Command must be run from by a player");
-            return;
-        }
-
-        CreatureSpawner cs = null;
-        final Player player = (Player) sender;
-        BlockIterator blocks = new BlockIterator(player, 20);
-        while (blocks.hasNext()){
-            final Block block = blocks.next();
-            if (block.getType() != Material.SPAWNER) continue;
-
-            cs = (CreatureSpawner) block.getState();
-            break;
-        }
-
-        if (cs == null){
-            sender.sendMessage("You must be looking at a spawner first");
-            return;
-        }
     }
 
     private void showOrUpdateLabel(@NotNull final CommandSender sender, final @NotNull String label, final @NotNull String @NotNull [] args){
@@ -225,7 +198,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
     @Override
     public List<String> onTabComplete(final @NotNull CommandSender commandSender, final @NotNull Command command, final @NotNull String label, final @NotNull String @NotNull [] args) {
         if (args.length > 1 && "debug".equals(args[0]))
-            return debugCommand.onTabComplete(commandSender, command, label, args);
+            return debugCommand.onTabComplete(commandSender, args);
         else if (args.length == 1)
             return List.of("debug", "reload", "info", "label", "spawners", "disable", "enable");
 

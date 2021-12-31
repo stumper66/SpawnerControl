@@ -1,5 +1,6 @@
 package me.stumper66.spawnercontrol.processing;
 
+import me.stumper66.spawnercontrol.DebugTypes;
 import me.stumper66.spawnercontrol.SpawnerControl;
 import me.stumper66.spawnercontrol.SpawnerInfo;
 import me.stumper66.spawnercontrol.Utils;
@@ -10,16 +11,16 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class UpdateProcessor {
     public UpdateProcessor(final @NotNull SpawnerProcessor sp){
         this.sp = sp;
         this.main = sp.main;
-        this.spawnerUpdateQueue = new LinkedList<>();
+        this.spawnerUpdateQueue = new ConcurrentLinkedDeque<>();
         this.allSpawners = new HashMap<>();
         this.chunkMappings = new HashMap<>();
         this.worldMappings = new HashMap<>();
@@ -33,20 +34,19 @@ public class UpdateProcessor {
     private final @NotNull Queue<SpawnerUpdateInterface> spawnerUpdateQueue;
     private boolean recheckCriteria;
     private final static Object chunkLock = new Object();
-    private final static Object queueLock = new Object();
 
     void processUpdates() {
         if (recheckCriteria) recheckSpawnerCriteria();
 
         while (true){
-            SpawnerUpdateInterface itemInterface;
+            final SpawnerUpdateInterface itemInterface = this.spawnerUpdateQueue.poll();
 
-            synchronized (queueLock) {
-                if (this.spawnerUpdateQueue.isEmpty()) return;
-                itemInterface = this.spawnerUpdateQueue.remove();
+            if (itemInterface == null) {
+                Utils.logger.info("item interface was null. count: " + this.spawnerUpdateQueue.size());
+                return;
             }
 
-            if (itemInterface == null) continue;
+            Utils.logger.info("got queue item " + itemInterface);
 
             switch (itemInterface.getOperation()){
                 case REMOVE:
@@ -72,10 +72,7 @@ public class UpdateProcessor {
         if (info != null){
             info.clearCache();
             info.setCs(item.cs);
-            Utils.logger.info("reevaluating tracked spawner");
         }
-        else
-            Utils.logger.info("evaluating UNtracked spawner");
 
         evaluateTrackingCriteriaForSpawner(item.cs, item.basicLocation);
     }
@@ -140,10 +137,7 @@ public class UpdateProcessor {
 
         if (main.namedSpawnerOptions != null) {
             final String spawnerCustomName = info.getSpawnerCustomName(main);
-            if (spawnerCustomName != null) {
-                Utils.logger.info(Utils.showSpawnerLocation(cs) + ", customName: " + spawnerCustomName + ", result: " +
-                        (main.namedSpawnerOptions.containsKey(spawnerCustomName)));
-            }
+
             if (spawnerCustomName != null && main.namedSpawnerOptions.containsKey(spawnerCustomName))
                 info.options = main.namedSpawnerOptions.get(spawnerCustomName);
             else
@@ -163,15 +157,13 @@ public class UpdateProcessor {
         spawnersInWorld.add(info.getBasicLocation());
 
         final String name = info.getSpawnerCustomName(main);
-        if (name != null && name.startsWith("test")){
-            final boolean test = info.options.allowedEntityTypes.isEnabledInList(cs.getSpawnedType());
-            Utils.logger.info("name: " + name + ", is allowed: " + test + ", " + info.options);
-        }
 
         if (info.options.allowedEntityTypes.isEnabledInList(cs.getSpawnedType())) {
+            Utils.logger.info("test 1");
 
             if (info.isChunkLoaded && !sp.activeSpawners.containsKey(info.getBasicLocation())) {
-                //Utils.logger.info("now tracking spawner: " + Utils.showSpawnerLocation(cs));
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.SPAWNER_ACTIVATION, info))
+                    Utils.logger.info("now active: " + Utils.showSpawnerLocation(cs));
                 sp.activeSpawners.put(info.getBasicLocation(), info);
             }
             else if (!info.isChunkLoaded){
@@ -180,12 +172,13 @@ public class UpdateProcessor {
 
         }
         else if (sp.activeSpawners.containsKey(info.getBasicLocation())) {
-            Utils.logger.info("no longer tracking spawner: " + Utils.showSpawnerLocation(cs));
+            Utils.logger.info("test 2");
+            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.SPAWNER_DEACTIVATION, info))
+                Utils.logger.info("no longer tracking spawner: " + Utils.showSpawnerLocation(cs));
             sp.activeSpawners.remove(info.getBasicLocation());
         }
-        else if (name != null && name.startsWith("test")){
-            Utils.logger.info("test 10");
-        }
+        else
+            Utils.logger.info("test 3");
     }
 
     public void spawnerGotRenamed(final @NotNull CreatureSpawner cs, final @Nullable String oldName, final @Nullable String newName){
@@ -193,21 +186,16 @@ public class UpdateProcessor {
         update.oldName = oldName;
         update.newName = newName;
 
-        synchronized (queueLock){
-            this.spawnerUpdateQueue.add(update);
-        }
+        this.spawnerUpdateQueue.add(update);
     }
 
     public void updateSpawner(final @NotNull CreatureSpawner cs, final @NotNull UpdateOperation operation){
-        synchronized (queueLock) {
-            this.spawnerUpdateQueue.add(new SpawnerUpdateItem(cs, operation));
-        }
+        this.spawnerUpdateQueue.add(new SpawnerUpdateItem(cs, operation));
+        Utils.logger.info("queue count: " + this.spawnerUpdateQueue.size());
     }
 
     public void updateChunk(final long chunkId, final @NotNull UpdateOperation operation){
-        synchronized (queueLock){
-            this.spawnerUpdateQueue.add(new SpawnerChunkUpdate(chunkId, operation));
-        }
+        this.spawnerUpdateQueue.add(new SpawnerChunkUpdate(chunkId, operation));
     }
 
     public void configReloaded(){

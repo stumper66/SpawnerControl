@@ -1,6 +1,7 @@
 package me.stumper66.spawnercontrol.listener;
 
 import me.stumper66.spawnercontrol.SpawnerControl;
+import me.stumper66.spawnercontrol.Utils;
 import me.stumper66.spawnercontrol.processing.UpdateOperation;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -40,7 +41,9 @@ public class BlockPlaceListener implements Listener {
 
     private void checkCreatureSpawnerDelayed(final @NotNull Block block){
         final CreatureSpawner cs = (CreatureSpawner) block.getState();
+
+        if (main.debugInfo.debugIsEnabled)
+            Utils.logger.info("Player placed new spawner: " + Utils.showSpawnerLocation(cs));
         main.updateProcessor.updateSpawner(cs, UpdateOperation.ADD);
-        //Utils.logger.info("logged new spawner");
     }
 }

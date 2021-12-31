@@ -4,7 +4,6 @@ import me.lokka30.microlib.messaging.MessageUtils;
 import me.stumper66.spawnercontrol.DebugInfo;
 import me.stumper66.spawnercontrol.DebugTypes;
 import me.stumper66.spawnercontrol.SpawnerControl;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
@@ -15,19 +14,21 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-@SuppressWarnings("unused")
 public class DebugCommand {
     public DebugCommand(final @NotNull SpawnerControl main) {
-        this.main = main;
         this.di = main.debugInfo;
     }
 
-    private final SpawnerControl main;
     private final DebugInfo di;
 
-    void onCommand(final @NotNull CommandSender sender, final @NotNull String label, final @NotNull String @NotNull [] args){
+    void onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args){
+        if (!sender.hasPermission("spawnercontrol.debug")){
+            sender.sendMessage(MessageUtils.colorizeAll("&b&lSpawnerControl: &7You don't have permissions to run this command"));
+            return;
+        }
+
         if (args.length <= 1){
-            showSyntax(sender, label);
+            showSyntax(sender);
             return;
         }
 
@@ -44,22 +45,22 @@ public class DebugCommand {
                 showStatus(sender);
                 break;
             case "debug_types":
-                showOrUpdateDebugTypes(sender, label, args);
+                showOrUpdateDebugTypes(sender, args);
                 break;
             case "entity_types":
-                showOrUpdateEntityTypes(sender, label, args);
+                showOrUpdateEntityTypes(sender, args);
                 break;
             case "spawner_names":
-                showOrUpdateSpawnerNames(sender, label, args);
+                showOrUpdateSpawnerNames(sender, args);
                 break;
             case "region_names":
-                showOrUpdateRegionNames(sender, label, args);
+                showOrUpdateRegionNames(sender, args);
                 break;
         }
     }
 
-    private void showSyntax(final @NotNull CommandSender sender, final @NotNull String label){
-        sender.sendMessage("this is the syntax");
+    private void showSyntax(final @NotNull CommandSender sender){
+        sender.sendMessage("Options: disable | enable | status | debug_types | entity_types | spawner_names | region_names");
     }
 
     private void showStatus(final @NotNull CommandSender sender){
@@ -97,7 +98,7 @@ public class DebugCommand {
         sender.sendMessage(MessageUtils.colorizeAll(sb.toString()));
     }
 
-    private void showOrUpdateDebugTypes(final @NotNull CommandSender sender, final @NotNull String label, final @NotNull String @NotNull [] args){
+    private void showOrUpdateDebugTypes(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args){
         if (args.length == 2){
             showEnabledDebugTypes(sender);
             return;
@@ -142,7 +143,7 @@ public class DebugCommand {
             sender.sendMessage("Invalid option");
     }
 
-    private void showOrUpdateEntityTypes(final @NotNull CommandSender sender, final @NotNull String label, final @NotNull String @NotNull [] args){
+    private void showOrUpdateEntityTypes(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args){
         if (args.length == 2){
             showEnabledDebugTypes(sender);
             return;
@@ -189,7 +190,7 @@ public class DebugCommand {
             sender.sendMessage("Invalid option");
     }
 
-    private void showOrUpdateSpawnerNames(final @NotNull CommandSender sender, final @NotNull String label, final @NotNull String @NotNull [] args){
+    private void showOrUpdateSpawnerNames(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args){
         if (args.length == 2){
             if (di.enabledSpawnerNames.isEmpty())
                 sender.sendMessage("Spawner names: all");
@@ -202,7 +203,7 @@ public class DebugCommand {
         sender.sendMessage("Updated spawner names list");
     }
 
-    private void showOrUpdateRegionNames(final @NotNull CommandSender sender, final @NotNull String label, final @NotNull String @NotNull [] args){
+    private void showOrUpdateRegionNames(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args){
         if (args.length == 2){
             if (di.enabledRegionNames.isEmpty())
                 sender.sendMessage("Region names: all");
@@ -257,7 +258,10 @@ public class DebugCommand {
         sender.sendMessage(sb.toString());
     }
 
-    List<String> onTabComplete(final @NotNull CommandSender sender, final @NotNull Command command, final @NotNull String label, final @NotNull String @NotNull [] args) {
+    @NotNull
+    List<String> onTabComplete(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
+        if (!sender.hasPermission("spawnercontrol.debug")) return Collections.emptyList();
+
         if (args.length == 2)
             return List.of("disable", "enable", "status", "debug_types", "mob_types", "spawner_names", "region_names");
 
@@ -276,6 +280,7 @@ public class DebugCommand {
         return Collections.emptyList();
     }
 
+    @NotNull
     private List<String> tabCompleteForNames(final @NotNull String @NotNull [] args, final @NotNull Set<String> names){
         if (args.length == 3)
             return List.of("add", "remove");
@@ -286,6 +291,7 @@ public class DebugCommand {
         return Collections.emptyList();
     }
 
+    @NotNull
     private List<String> tabCompleteForDebugTypes(final @NotNull String @NotNull [] args){
         if (args.length == 3)
             return List.of("add", "remove");
@@ -335,6 +341,7 @@ public class DebugCommand {
         return Collections.emptyList();
     }
 
+    @NotNull
     private List<String> tabCompleteForEntityTypes(final @NotNull String @NotNull [] args){
         if (args.length == 3)
             return List.of("add", "remove");

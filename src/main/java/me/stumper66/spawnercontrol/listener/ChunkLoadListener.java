@@ -1,6 +1,8 @@
 package me.stumper66.spawnercontrol.listener;
 
+import me.stumper66.spawnercontrol.DebugTypes;
 import me.stumper66.spawnercontrol.SpawnerControl;
+import me.stumper66.spawnercontrol.Utils;
 import me.stumper66.spawnercontrol.processing.UpdateOperation;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -40,7 +42,8 @@ public class ChunkLoadListener implements Listener {
                     if (world.getBlockAt(x, y, z).getType() != Material.SPAWNER) continue;
 
                     final CreatureSpawner cs = (CreatureSpawner) world.getBlockAt(x, y, z).getState();
-                    //Utils.logger.info("ChunkLoadEvent: found spawner of type: " + cs.getSpawnedType().name() + ", " + cs.getLocation());
+                    if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugTypes.CHUNK_LOAD))
+                        Utils.logger.info("ChunkLoadEvent: found spawner " + Utils.showSpawnerLocation(cs));
 
                     main.updateProcessor.updateSpawner(cs, UpdateOperation.ADD);
                 }

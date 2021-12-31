@@ -50,9 +50,9 @@ public class SpawnerControl extends JavaPlugin {
 
     private void registerCommands() {
         CommandProcessor cmd = new CommandProcessor(this);
-        final PluginCommand scCmd = getCommand("slimespawners");
+        final PluginCommand scCmd = getCommand("spawnercontrol");
         if (scCmd == null)
-            Utils.logger.error("Command &b/slimespawners&7 is unavailable, is it not registered in plugin.yml?");
+            Utils.logger.error("Command &b/spawnercontrol&7 is unavailable, is it not registered in plugin.yml?");
         else
             scCmd.setExecutor(cmd);
     }

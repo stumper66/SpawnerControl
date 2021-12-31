@@ -37,7 +37,6 @@ public class FileLoader {
         final SpawnerOptions spawnerOptions = parseSpawnerOptions(settings, defaults);
         main.wgRegionOptions = parseConfigRegions(settings.get("worldguard-regions"), defaults, true);
         main.namedSpawnerOptions = parseConfigRegions(settings.get("named-spawners"), defaults, false);
-        Utils.logger.info("test: " + main.namedSpawnerOptions);
         main.spawnerOptions = spawnerOptions;
     }
 
