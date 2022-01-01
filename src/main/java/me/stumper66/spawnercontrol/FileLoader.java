@@ -57,12 +57,43 @@ public class FileLoader {
         spawnerOptions.playerRequiredRange = cs.getInt("player-required-range", defaults.playerRequiredRange);
         spawnerOptions.delay = cs.getInt("spawner-delay", defaults.delay);
         spawnerOptions.allowAirSpawning = cs.getBoolean("allow-air-spawning");
+        final String numberRange = cs.getString("allowed-light-levels");
+        if (numberRange != null) setAmountRangeFromString(numberRange, spawnerOptions);
+
         if (cs.getInt("slime-size-min", 0) > 0)
             spawnerOptions.slimeSizeMin = cs.getInt("slime-size-min");
         if (cs.getInt("slime-size-max", 0) > 0)
             spawnerOptions.slimeSizeMax = cs.getInt("slime-size-max");
 
         return spawnerOptions;
+    }
+
+    private static void setAmountRangeFromString(final String numberOrNumberRange, final @NotNull SpawnerOptions spawnerOptions){
+        if (numberOrNumberRange == null || numberOrNumberRange.isEmpty()) return;
+
+        if (!numberOrNumberRange.contains("-")){
+            if (!Utils.isInteger(numberOrNumberRange)) {
+                Utils.logger.warning("Invalid number: " + numberOrNumberRange);
+                return;
+            }
+
+            spawnerOptions.allowedLightLevel_Min = Integer.parseInt(numberOrNumberRange);
+            spawnerOptions.allowedLightLevel_Max = spawnerOptions.allowedLightLevel_Min;
+            return;
+        }
+
+        final String[] nums = numberOrNumberRange.split("-");
+        if (nums.length != 2) {
+            Utils.logger.warning("Invalid number range: " + numberOrNumberRange);
+            return;
+        }
+
+        if (!Utils.isInteger(nums[0].trim()) || !Utils.isInteger(nums[1].trim())) {
+            Utils.logger.warning("Invalid number range: " + numberOrNumberRange);
+            return;
+        }
+        spawnerOptions.allowedLightLevel_Min = Integer.parseInt(nums[0].trim());
+        spawnerOptions.allowedLightLevel_Max = Integer.parseInt(nums[1].trim());
     }
 
     @Nullable

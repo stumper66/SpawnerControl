@@ -115,7 +115,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
         }
 
         info.setSpawnerCustomName(newName, main);
-        main.updateProcessor.spawnerGotRenamed(cs, customName, newName);
+        main.spawnerProcessor.spawnerGotRenamed(cs, customName, newName);
         sender.sendMessage("spawner name updated to: " + newName);
     }
 
@@ -159,7 +159,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
     private void showSpawners(@NotNull final CommandSender sender){
         if (!hasPermission("spawnercontrol.spawners", sender)) return;
 
-        sender.sendMessage("All known spawners count: " + main.updateProcessor.getAllKnownSpawnersCount());
+        sender.sendMessage("All known spawners count: " + main.spawnerProcessor.getAllKnownSpawnersCount());
         final Collection<SpawnerInfo> spawnerInfos = main.spawnerProcessor.getMonitoredSpawners();
         if (spawnerInfos.isEmpty()){
             sender.sendMessage("There are no spawners currently monitored");

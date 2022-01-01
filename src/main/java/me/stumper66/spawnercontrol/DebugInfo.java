@@ -17,31 +17,40 @@ public class DebugInfo {
     }
 
     public boolean debugIsEnabled;
-    public final Set<DebugTypes> enabledDebugTypes;
+    public final Set<DebugType> enabledDebugTypes;
     public final Set<EntityType> enabledEntityTypes;
     public final Set<String> enabledSpawnerNames;
     public final Set<String> enabledRegionNames;
     public boolean allEntityTypesEnabled;
 
-    public boolean doesSpawnerMeetDebugCriteria(final @NotNull DebugTypes debugType){
+    public boolean doesSpawnerMeetDebugCriteria(final @NotNull DebugType debugType){
         if (!this.debugIsEnabled) return false;
 
         return this.enabledDebugTypes.isEmpty() || this.enabledDebugTypes.contains(debugType);
     }
 
-    public boolean doesSpawnerMeetDebugCriteria(final @NotNull SpawnerControl sc, final @NotNull DebugTypes debugType, final @NotNull SpawnerInfo info){
+    public boolean doesSpawnerMeetDebugCriteria(final @NotNull SpawnerControl sc, final @NotNull DebugType debugType, final @NotNull SpawnerInfo info){
         if (!this.debugIsEnabled) return false;
 
-        if (!this.enabledDebugTypes.isEmpty() && !this.enabledDebugTypes.contains(debugType)) return false;
+        if (!this.enabledDebugTypes.isEmpty() && !this.enabledDebugTypes.contains(debugType)) {
+            return false;
+        }
 
-        if (!this.allEntityTypesEnabled || !this.enabledEntityTypes.contains(info.getCs().getSpawnedType())) return false;
+        if (!this.allEntityTypesEnabled && !this.enabledEntityTypes.contains(info.getCs().getSpawnedType())) {
+            return false;
+        }
 
         String spawnerName = info.getSpawnerCustomName(sc);
         if (spawnerName == null) spawnerName = "(none)";
-        if (!this.enabledSpawnerNames.isEmpty() && !this.enabledSpawnerNames.contains(spawnerName)) return false;
+        if (!this.enabledSpawnerNames.isEmpty() && !this.enabledSpawnerNames.contains(spawnerName)) {
+            return false;
+        }
 
         String regionName = info.matchedWGRegion;
         if (regionName == null) regionName = "(none)";
-        return this.enabledRegionNames.isEmpty() || this.enabledRegionNames.contains(regionName);
+        if (!this.enabledRegionNames.isEmpty() && !this.enabledRegionNames.contains(regionName))
+            return false;
+
+        return true;
     }
 }

@@ -2,7 +2,7 @@ package me.stumper66.spawnercontrol.command;
 
 import me.lokka30.microlib.messaging.MessageUtils;
 import me.stumper66.spawnercontrol.DebugInfo;
-import me.stumper66.spawnercontrol.DebugTypes;
+import me.stumper66.spawnercontrol.DebugType;
 import me.stumper66.spawnercontrol.SpawnerControl;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
@@ -107,12 +107,12 @@ public class DebugCommand {
         if ("add".equalsIgnoreCase(args[2])){
             for (int i = 3; i < args.length; i++) {
                 if ("*".equals(args[i])){
-                    di.enabledDebugTypes.addAll(Arrays.asList(DebugTypes.values()));
+                    di.enabledDebugTypes.addAll(Arrays.asList(DebugType.values()));
                     break;
                 }
-                DebugTypes type;
+                DebugType type;
                 try {
-                    type = DebugTypes.valueOf(args[i].toUpperCase());
+                    type = DebugType.valueOf(args[i].toUpperCase());
                 } catch (Exception ignored) {
                     sender.sendMessage("Invalid debug type: " + args[i]);
                     continue;
@@ -128,9 +128,9 @@ public class DebugCommand {
                     di.enabledDebugTypes.clear();
                     break;
                 }
-                DebugTypes type;
+                DebugType type;
                 try {
-                    type = DebugTypes.valueOf(args[i].toUpperCase());
+                    type = DebugType.valueOf(args[i].toUpperCase());
                 } catch (Exception e) {
                     continue;
                 }
@@ -236,7 +236,7 @@ public class DebugCommand {
         else {
             sb.append("Enabled types: ");
             int count = 0;
-            for (final DebugTypes type : di.enabledDebugTypes){
+            for (final DebugType type : di.enabledDebugTypes){
                 if (count > 0) sb.append(", ");
 
                 sb.append(type.toString().toLowerCase());
@@ -244,15 +244,15 @@ public class DebugCommand {
             }
         }
 
-        if (di.enabledDebugTypes.size() == DebugTypes.values().length){
+        if (di.enabledDebugTypes.size() == DebugType.values().length){
             sender.sendMessage(sb.toString());
             return;
         }
 
         sb.append("\nAvailable types: ");
-        for (int i = 0; i < DebugTypes.values().length; i++){
+        for (int i = 0; i < DebugType.values().length; i++){
             if (i > 0) sb.append(", ");
-            sb.append(DebugTypes.values()[i].toString().toLowerCase());
+            sb.append(DebugType.values()[i].toString().toLowerCase());
         }
 
         sender.sendMessage(sb.toString());
@@ -297,9 +297,9 @@ public class DebugCommand {
             return List.of("add", "remove");
 
         if ("add".equalsIgnoreCase(args[2])) {
-            final List<DebugTypes> types = new LinkedList<>();
-            Collections.addAll(types, DebugTypes.values());
-            for (final DebugTypes type : di.enabledDebugTypes)
+            final List<DebugType> types = new LinkedList<>();
+            Collections.addAll(types, DebugType.values());
+            for (final DebugType type : di.enabledDebugTypes)
                 types.remove(type);
 
             boolean hadWildcard = false;
@@ -308,9 +308,9 @@ public class DebugCommand {
                     hadWildcard = true;
                     continue;
                 }
-                DebugTypes type;
+                DebugType type;
                 try {
-                    type = DebugTypes.valueOf(args[i].toUpperCase());
+                    type = DebugType.valueOf(args[i].toUpperCase());
                 } catch (Exception e) {
                     continue;
                 }
@@ -320,7 +320,7 @@ public class DebugCommand {
 
             List<String> results = new LinkedList<>();
             if (!hadWildcard) results.add("*");
-            for (final DebugTypes debugType : types)
+            for (final DebugType debugType : types)
                 results.add(debugType.toString().toLowerCase());
 
             return types.isEmpty() ?
@@ -332,7 +332,7 @@ public class DebugCommand {
 
             final List<String> types = new LinkedList<>();
             types.add("*");
-            for (final DebugTypes type : di.enabledDebugTypes)
+            for (final DebugType type : di.enabledDebugTypes)
                 types.add(type.toString().toLowerCase());
 
             return types;

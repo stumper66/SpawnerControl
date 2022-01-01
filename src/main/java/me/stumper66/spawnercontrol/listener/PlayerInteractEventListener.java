@@ -43,6 +43,6 @@ public class PlayerInteractEventListener implements Listener {
 
         if (main.debugInfo.debugIsEnabled)
             Utils.logger.info("Player updated spawner: " + Utils.showSpawnerLocation(cs));
-        main.updateProcessor.updateSpawner(cs, UpdateOperation.UPDATE);
+        main.spawnerProcessor.updateSpawner(cs, UpdateOperation.UPDATE);
     }
 }

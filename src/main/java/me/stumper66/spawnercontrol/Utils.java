@@ -3,6 +3,7 @@ package me.stumper66.spawnercontrol;
 import me.lokka30.microlib.messaging.MicroLogger;
 import org.bukkit.block.CreatureSpawner;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("unused")
 public class Utils {
@@ -26,5 +27,17 @@ public class Utils {
                 cs.getLocation().getBlockY(),
                 cs.getLocation().getBlockZ()
         );
+    }
+
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    public static boolean isInteger(@Nullable final String str) {
+        if (str == null || str.isEmpty()) return false;
+
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (final NumberFormatException ex) {
+            return false;
+        }
     }
 }

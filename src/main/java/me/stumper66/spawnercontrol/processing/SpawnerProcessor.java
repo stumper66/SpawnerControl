@@ -1,7 +1,7 @@
 package me.stumper66.spawnercontrol.processing;
 
 import me.lokka30.microlib.other.VersionUtils;
-import me.stumper66.spawnercontrol.DebugTypes;
+import me.stumper66.spawnercontrol.DebugType;
 import me.stumper66.spawnercontrol.SpawnerControl;
 import me.stumper66.spawnercontrol.SpawnerInfo;
 import me.stumper66.spawnercontrol.SpawnerOptions;
@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -60,6 +61,8 @@ public class SpawnerProcessor {
     private final UpdateProcessor updateProcessor;
     private final static int ticksPerCall = 40;
     public final NamespacedKey spawnerCustomNameKey;
+    public UUID currentSpawningEntityId;
+    public final static Object lock_ActiveSpawners = new Object();
 
     public void processSpawners() {
         if (!main.isEnabled) return;
@@ -78,8 +81,18 @@ public class SpawnerProcessor {
         else if (hasWorldGuard)
             this.lastWGCheckTicks += ticksPerCall;
 
-        final Set<BasicLocation> spawnersToCheck = getSpawnersWithinPlayerActivationRange();
-        if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugTypes.ACTIVE_SPAWNERS))
+        final Set<BasicLocation> spawnersMeetingLightCriteria = getSpawnersMeetingLightCriteria();
+        if (spawnersMeetingLightCriteria.isEmpty()){
+            if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.LIGHT_REQ_NOT_MET))
+                Utils.logger.info("No spawners met light level criteria");
+            return;
+        }
+
+        if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.LIGHT_REQ_NOT_MET))
+            Utils.logger.info("Spawners meeting light level criteria: " + spawnersMeetingLightCriteria.size());
+
+        final Set<BasicLocation> spawnersToCheck = getSpawnersWithinPlayerActivationRange(spawnersMeetingLightCriteria);
+        if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.ACTIVE_SPAWNERS))
             Utils.logger.info("player activated spawners count: " + spawnersToCheck.size());
 
         for (final BasicLocation location : spawnersToCheck) {
@@ -87,7 +100,7 @@ public class SpawnerProcessor {
             if (info == null) continue;
 
             if (shouldSpawnerSpawnNow(info)) {
-                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.ACTIVE_SPAWNERS, info))
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.ACTIVE_SPAWNERS, info))
                     Utils.logger.info("attempting spawn from " + Utils.showSpawnerLocation(info.getCs()));
                 final SpawnerOptions opts = info.options != null ?
                         info.options : options;
@@ -99,7 +112,22 @@ public class SpawnerProcessor {
     }
 
     @NotNull
-    private Set<BasicLocation> getSpawnersWithinPlayerActivationRange(){
+    private Set<BasicLocation> getSpawnersMeetingLightCriteria(){
+        final Set<BasicLocation> spawners = new HashSet<>();
+
+        for (final BasicLocation basicLocation : activeSpawners.keySet()){
+            final SpawnerInfo info = activeSpawners.get(basicLocation);
+            if (info.options == null) info.options = new SpawnerOptions();
+            final int lightLevel = info.getCs().getBlock().getLightLevel();
+            if (lightLevel >= info.options.allowedLightLevel_Min && lightLevel <= info.options.allowedLightLevel_Max)
+                spawners.add(basicLocation);
+        }
+
+        return spawners;
+    }
+
+    @NotNull
+    private Set<BasicLocation> getSpawnersWithinPlayerActivationRange(final Set<BasicLocation> spawnersToCompare){
         final Set<BasicLocation> spawners = new HashSet<>();
 
         for (final Player player : Bukkit.getOnlinePlayers()){
@@ -107,12 +135,23 @@ public class SpawnerProcessor {
                 continue;
 
             for (final BasicLocation basicLocation : updateProcessor.worldMappings.get(player.getWorld().getName())){
+                // already added this one to the list
                 if (spawners.contains(basicLocation))
                     continue;
 
                 final SpawnerInfo info = activeSpawners.get(basicLocation);
                 if (info == null || !info.isChunkLoaded || info.options == null)
                     continue;
+
+                // must have met light level criteria
+                if (!spawnersToCompare.contains(basicLocation)) {
+                    if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.LIGHT_REQ_NOT_MET, info)) {
+                        Utils.logger.info(String.format(
+                            "Spawner doesn't meet light criteria of %s-%s. block light level: %s. %s",
+                            info.options.allowedLightLevel_Min, info.options.allowedLightLevel_Max, info.getCs().getBlock().getLightLevel(), Utils.showSpawnerLocation(info.getCs())));
+                    }
+                    continue;
+                }
 
                 final long distance = (long) Math.ceil(info.getCs().getLocation().distanceSquared(player.getLocation()));
                 if (distance <= info.options.playerRequiredRange)
@@ -164,7 +203,7 @@ public class SpawnerProcessor {
         }
 
         if (similarEntityCount >= options.maxNearbyEntities) {
-            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.SPAWN_ATTEMPT_FAILED, info))
+            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_FAILED, info))
                 Utils.logger.info("too many similar entities - " + similarEntityCount + ", " + Utils.showSpawnerLocation(info.getCs()));
             return;
         }
@@ -187,12 +226,12 @@ public class SpawnerProcessor {
         for (int i = 0; i < info.options.spawnCount; i++) {
             final Location spawnLocation = getSpawnLocation(cs.getLocation());
             if (spawnLocation == null) {
-                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.SPAWN_ATTEMPT_FAILED, info))
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_FAILED, info))
                     Utils.logger.info("Could not find a suitable spawn location: " + Utils.showSpawnerLocation(cs));
                 continue;
             }
 
-            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.SPAWN_ATTEMPT_SUCCESS, info)) {
+            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_SUCCESS, info)) {
                 Utils.logger.info(String.format("spawning %s at %s, %s, %s",
                         cs.getSpawnedType().name(), spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ()));
             }
@@ -203,7 +242,9 @@ public class SpawnerProcessor {
                     cs.getWorld().spawnEntity(spawnLocation, cs.getSpawnedType(), CreatureSpawnEvent.SpawnReason.SPAWNER) :
                     SpigotCompat.spawnEntity(spawnLocation, cs.getSpawnedType());
 
+            this.currentSpawningEntityId = entity.getUniqueId();
             Bukkit.getPluginManager().callEvent(new SpawnerSpawnEvent(entity, cs));
+            this.currentSpawningEntityId = null;
 
             makeParticles(entity.getLocation());
 
@@ -216,7 +257,7 @@ public class SpawnerProcessor {
                         useMin :
                         ThreadLocalRandom.current().nextInt(useMin, useMax + 1);
 
-                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.ENTITY_SPECIFIC, info))
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.ENTITY_SPECIFIC, info))
                     Utils.logger.info("setting slime size to " + useSize + ", " + Utils.showSpawnerLocation(info.getCs()));
                 slime.setSize(useSize);
             }
@@ -306,7 +347,44 @@ public class SpawnerProcessor {
         return null;
     }
 
+    public void configReloaded(){
+        this.updateProcessor.configReloaded();
+    }
+
     public int getActiveSpawnersCount(){
         return this.activeSpawners.size();
+    }
+
+    public void spawnerGotRenamed(final @NotNull CreatureSpawner cs, final @Nullable String oldName, final @Nullable String newName){
+        final SpawnerUpdateItem update = new SpawnerUpdateItem(cs, UpdateOperation.CUSTOM_NAME_CHANGE);
+        update.oldName = oldName;
+        update.newName = newName;
+
+        updateProcessor.spawnerUpdateQueue.add(update);
+    }
+
+    public void updateSpawner(final @NotNull CreatureSpawner cs, final @NotNull UpdateOperation operation){
+        updateProcessor.spawnerUpdateQueue.add(new SpawnerUpdateItem(cs, operation));
+    }
+
+    public void updateChunk(final long chunkId, final @NotNull UpdateOperation operation){
+        updateProcessor.spawnerUpdateQueue.add(new SpawnerChunkUpdate(chunkId, operation));
+    }
+
+    public boolean hasAlreadyProcessedChunk(final long chunkId){
+        synchronized (UpdateProcessor.chunkLock){
+            return updateProcessor.chunkMappings.containsKey(chunkId);
+        }
+    }
+
+    public int getAllKnownSpawnersCount(){
+        return updateProcessor.allSpawners.size();
+    }
+
+    public boolean isSpawnerActive(final @NotNull CreatureSpawner cs){
+        final BasicLocation basicLocation = new BasicLocation(cs.getLocation());
+        synchronized (lock_ActiveSpawners){
+            return this.activeSpawners.containsKey(basicLocation);
+        }
     }
 }

@@ -5,8 +5,8 @@ import me.stumper66.spawnercontrol.listener.BlockBreakListener;
 import me.stumper66.spawnercontrol.listener.BlockPlaceListener;
 import me.stumper66.spawnercontrol.listener.ChunkLoadListener;
 import me.stumper66.spawnercontrol.listener.PlayerInteractEventListener;
+import me.stumper66.spawnercontrol.listener.SpawnerSpawnListener;
 import me.stumper66.spawnercontrol.processing.SpawnerProcessor;
-import me.stumper66.spawnercontrol.processing.UpdateProcessor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -20,7 +20,6 @@ public class SpawnerControl extends JavaPlugin {
     public YamlConfiguration settings;
     public boolean isEnabled;
     public SpawnerProcessor spawnerProcessor;
-    public UpdateProcessor updateProcessor;
     public Map<String, SpawnerOptions> wgRegionOptions;
     public Map<String, SpawnerOptions> namedSpawnerOptions;
     public SpawnerOptions spawnerOptions;
@@ -30,7 +29,6 @@ public class SpawnerControl extends JavaPlugin {
     @Override
     public void onEnable() {
         spawnerProcessor = new SpawnerProcessor(this);
-        updateProcessor = new UpdateProcessor(spawnerProcessor);
         debugInfo = new DebugInfo();
 
         registerCommands();
@@ -63,6 +61,7 @@ public class SpawnerControl extends JavaPlugin {
         pm.registerEvents(new BlockBreakListener(this), this);
         pm.registerEvents(new ChunkLoadListener(this), this);
         pm.registerEvents(new PlayerInteractEventListener(this), this);
+        pm.registerEvents(new SpawnerSpawnListener(this), this);
     }
 
     private void startRunnables() {
@@ -83,7 +82,7 @@ public class SpawnerControl extends JavaPlugin {
         FileLoader.parseConfigFile(this, settings);
 
         if (isReload)
-            updateProcessor.configReloaded();
+            spawnerProcessor.configReloaded();
     }
 
     public static boolean isWorldGuardInstalled() {

@@ -9,6 +9,9 @@ allowed-entity-types:
   allowed-list: ['slime'] # update to a list of entities that will be monitored
   excluded-list: ['']
 
+# 0 = no light, 15 is the brighest.  To allow all light levels, use 0-15
+allowed-light-levels: 0-15
+
 # the distance (squared) a player must be near to a spawner to activate it
 player-required-range: 50
 # the minimum spawn delay amount (in ticks)

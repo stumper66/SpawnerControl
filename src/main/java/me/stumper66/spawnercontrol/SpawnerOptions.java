@@ -17,6 +17,8 @@ public class SpawnerOptions {
         this.spawnRange = 6;
         this.maxNearbyEntities = 4;
         this.delay = 20;
+        this.allowedLightLevel_Min = 0;
+        this.allowedLightLevel_Max = 15;
     }
 
     public int playerRequiredRange;
@@ -26,6 +28,8 @@ public class SpawnerOptions {
     public int spawnCount;
     public int spawnRange;
     public int delay;
+    public int allowedLightLevel_Min;
+    public int allowedLightLevel_Max;
     public Integer slimeSizeMin;
     public Integer slimeSizeMax;
     public boolean allowAirSpawning;

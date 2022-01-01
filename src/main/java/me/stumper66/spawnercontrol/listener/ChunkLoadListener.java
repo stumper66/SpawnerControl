@@ -1,6 +1,6 @@
 package me.stumper66.spawnercontrol.listener;
 
-import me.stumper66.spawnercontrol.DebugTypes;
+import me.stumper66.spawnercontrol.DebugType;
 import me.stumper66.spawnercontrol.SpawnerControl;
 import me.stumper66.spawnercontrol.Utils;
 import me.stumper66.spawnercontrol.processing.UpdateOperation;
@@ -25,8 +25,8 @@ public class ChunkLoadListener implements Listener {
     void onChunkLoad(final @NotNull ChunkLoadEvent event){
         if (!main.spawnerOptions.allowedWorlds.isEnabledInList(event.getWorld().getName())) return;
 
-        if (main.updateProcessor.hasAlreadyProcessedChunk(event.getChunk().getChunkKey())){
-            main.updateProcessor.updateChunk(event.getChunk().getChunkKey(), UpdateOperation.CHUNK_REFRESH);
+        if (main.spawnerProcessor.hasAlreadyProcessedChunk(event.getChunk().getChunkKey())){
+            main.spawnerProcessor.updateChunk(event.getChunk().getChunkKey(), UpdateOperation.CHUNK_REFRESH);
             return;
         }
 
@@ -42,10 +42,10 @@ public class ChunkLoadListener implements Listener {
                     if (world.getBlockAt(x, y, z).getType() != Material.SPAWNER) continue;
 
                     final CreatureSpawner cs = (CreatureSpawner) world.getBlockAt(x, y, z).getState();
-                    if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugTypes.CHUNK_LOAD))
+                    if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.CHUNK_LOAD))
                         Utils.logger.info("ChunkLoadEvent: found spawner " + Utils.showSpawnerLocation(cs));
 
-                    main.updateProcessor.updateSpawner(cs, UpdateOperation.ADD);
+                    main.spawnerProcessor.updateSpawner(cs, UpdateOperation.ADD);
                 }
             }
         }
@@ -55,6 +55,6 @@ public class ChunkLoadListener implements Listener {
     void onChunkUnload(final @NotNull ChunkUnloadEvent event){
         if (!main.spawnerOptions.allowedWorlds.isEnabledInList(event.getWorld().getName())) return;
 
-        main.updateProcessor.updateChunk(event.getChunk().getChunkKey(), UpdateOperation.CHUNK_UNLOADED);
+        main.spawnerProcessor.updateChunk(event.getChunk().getChunkKey(), UpdateOperation.CHUNK_UNLOADED);
     }
 }

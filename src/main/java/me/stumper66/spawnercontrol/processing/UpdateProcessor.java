@@ -1,13 +1,12 @@
 package me.stumper66.spawnercontrol.processing;
 
-import me.stumper66.spawnercontrol.DebugTypes;
+import me.stumper66.spawnercontrol.DebugType;
 import me.stumper66.spawnercontrol.SpawnerControl;
 import me.stumper66.spawnercontrol.SpawnerInfo;
 import me.stumper66.spawnercontrol.Utils;
 import me.stumper66.spawnercontrol.WorldGuardManager;
 import org.bukkit.block.CreatureSpawner;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,13 +26,13 @@ public class UpdateProcessor {
     }
 
     private final SpawnerControl main;
-    private final @NotNull Map<BasicLocation, CreatureSpawner> allSpawners;
-    private final @NotNull Map<Long, Set<BasicLocation>> chunkMappings;
+    final @NotNull Map<BasicLocation, CreatureSpawner> allSpawners;
+    final @NotNull Map<Long, Set<BasicLocation>> chunkMappings;
     final @NotNull Map<String, Set<BasicLocation>> worldMappings;
     private final SpawnerProcessor sp;
-    private final @NotNull Queue<SpawnerUpdateInterface> spawnerUpdateQueue;
+    final @NotNull Queue<SpawnerUpdateInterface> spawnerUpdateQueue;
     private boolean recheckCriteria;
-    private final static Object chunkLock = new Object();
+    final static Object chunkLock = new Object();
 
     void processUpdates() {
         if (recheckCriteria) recheckSpawnerCriteria();
@@ -41,12 +40,7 @@ public class UpdateProcessor {
         while (true){
             final SpawnerUpdateInterface itemInterface = this.spawnerUpdateQueue.poll();
 
-            if (itemInterface == null) {
-                Utils.logger.info("item interface was null. count: " + this.spawnerUpdateQueue.size());
-                return;
-            }
-
-            Utils.logger.info("got queue item " + itemInterface);
+            if (itemInterface == null) return;
 
             switch (itemInterface.getOperation()){
                 case REMOVE:
@@ -66,7 +60,6 @@ public class UpdateProcessor {
         }
     }
 
-
     private void processSpawnerRename(final @NotNull SpawnerUpdateItem item){
         final SpawnerInfo info = sp.activeSpawners.get(item.basicLocation);
         if (info != null){
@@ -78,12 +71,13 @@ public class UpdateProcessor {
     }
 
     private void removeSpawner(final @NotNull SpawnerUpdateItem item){
-        sp.activeSpawners.remove(item.basicLocation);
+        synchronized (SpawnerProcessor.lock_ActiveSpawners) {
+            sp.activeSpawners.remove(item.basicLocation);
+        }
         if (this.chunkMappings.containsKey(item.cs.getLocation().getChunk().getChunkKey()))
             this.chunkMappings.get(item.cs.getLocation().getChunk().getChunkKey()).remove(item.basicLocation);
         if (this.worldMappings.containsKey(item.cs.getLocation().getWorld().getName()))
             this.worldMappings.get(item.cs.getLocation().getWorld().getName()).remove(item.basicLocation);
-        this.allSpawners.remove(item.basicLocation);
     }
 
     private void processChunk(final @NotNull SpawnerChunkUpdate spawnerChunkUpdate){
@@ -159,57 +153,30 @@ public class UpdateProcessor {
         final String name = info.getSpawnerCustomName(main);
 
         if (info.options.allowedEntityTypes.isEnabledInList(cs.getSpawnedType())) {
-            Utils.logger.info("test 1");
-
             if (info.isChunkLoaded && !sp.activeSpawners.containsKey(info.getBasicLocation())) {
-                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.SPAWNER_ACTIVATION, info))
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWNER_ACTIVATION, info))
                     Utils.logger.info("now active: " + Utils.showSpawnerLocation(cs));
-                sp.activeSpawners.put(info.getBasicLocation(), info);
+                synchronized (SpawnerProcessor.lock_ActiveSpawners) {
+                    sp.activeSpawners.put(info.getBasicLocation(), info);
+                }
             }
             else if (!info.isChunkLoaded){
-                sp.activeSpawners.remove(info.getBasicLocation());
+                synchronized (SpawnerProcessor.lock_ActiveSpawners) {
+                    sp.activeSpawners.remove(info.getBasicLocation());
+                }
             }
-
         }
         else if (sp.activeSpawners.containsKey(info.getBasicLocation())) {
-            Utils.logger.info("test 2");
-            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugTypes.SPAWNER_DEACTIVATION, info))
+            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWNER_DEACTIVATION, info))
                 Utils.logger.info("no longer tracking spawner: " + Utils.showSpawnerLocation(cs));
-            sp.activeSpawners.remove(info.getBasicLocation());
+            synchronized (SpawnerProcessor.lock_ActiveSpawners) {
+                sp.activeSpawners.remove(info.getBasicLocation());
+            }
         }
-        else
-            Utils.logger.info("test 3");
-    }
-
-    public void spawnerGotRenamed(final @NotNull CreatureSpawner cs, final @Nullable String oldName, final @Nullable String newName){
-        final SpawnerUpdateItem update = new SpawnerUpdateItem(cs, UpdateOperation.CUSTOM_NAME_CHANGE);
-        update.oldName = oldName;
-        update.newName = newName;
-
-        this.spawnerUpdateQueue.add(update);
-    }
-
-    public void updateSpawner(final @NotNull CreatureSpawner cs, final @NotNull UpdateOperation operation){
-        this.spawnerUpdateQueue.add(new SpawnerUpdateItem(cs, operation));
-        Utils.logger.info("queue count: " + this.spawnerUpdateQueue.size());
-    }
-
-    public void updateChunk(final long chunkId, final @NotNull UpdateOperation operation){
-        this.spawnerUpdateQueue.add(new SpawnerChunkUpdate(chunkId, operation));
     }
 
     public void configReloaded(){
         this.recheckCriteria = true;
         sp.lastWGCheckTicks = -1;
-    }
-
-    public boolean hasAlreadyProcessedChunk(final long chunkId){
-        synchronized (chunkLock){
-            return this.chunkMappings.containsKey(chunkId);
-        }
-    }
-
-    public int getAllKnownSpawnersCount(){
-        return this.allSpawners.size();
     }
 }

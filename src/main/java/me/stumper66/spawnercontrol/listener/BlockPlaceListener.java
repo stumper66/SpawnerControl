@@ -44,6 +44,6 @@ public class BlockPlaceListener implements Listener {
 
         if (main.debugInfo.debugIsEnabled)
             Utils.logger.info("Player placed new spawner: " + Utils.showSpawnerLocation(cs));
-        main.updateProcessor.updateSpawner(cs, UpdateOperation.ADD);
+        main.spawnerProcessor.updateSpawner(cs, UpdateOperation.ADD);
     }
 }

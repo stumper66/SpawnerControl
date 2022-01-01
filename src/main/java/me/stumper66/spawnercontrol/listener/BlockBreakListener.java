@@ -26,6 +26,6 @@ public class BlockBreakListener implements Listener {
         final CreatureSpawner cs = (CreatureSpawner) event.getBlock().getState();
         if (main.debugInfo.debugIsEnabled)
             Utils.logger.info("Spawner destroyed: " + Utils.showSpawnerLocation(cs));
-        main.updateProcessor.updateSpawner(cs, UpdateOperation.REMOVE);
+        main.spawnerProcessor.updateSpawner(cs, UpdateOperation.REMOVE);
     }
 }
