@@ -51,14 +51,37 @@ public class FileLoader {
         if (allowedEntities != null) spawnerOptions.allowedEntityTypes = allowedEntities;
         spawnerOptions.maxNearbyEntities = cs.getInt("max-nearby-entities", defaults.maxNearbyEntities);
         spawnerOptions.spawnRange = cs.getInt("spawn-range", defaults.spawnRange);
-        spawnerOptions.spawnCount = cs.getInt("spawn-count", defaults.spawnCount);
         spawnerOptions.minSpawnDelay = cs.getInt("min-spawn-delay", defaults.minSpawnDelay);
         spawnerOptions.maxSpawnDelay = cs.getInt("max-spawn-delay", defaults.maxSpawnDelay);
-        spawnerOptions.playerRequiredRange = cs.getInt("player-required-range", defaults.playerRequiredRange);
+        spawnerOptions.playerRequiredRange = cs.getDouble("player-required-range", defaults.playerRequiredRange) * 16.0;
         spawnerOptions.delay = cs.getInt("spawner-delay", defaults.delay);
         spawnerOptions.allowAirSpawning = cs.getBoolean("allow-air-spawning");
-        final String numberRange = cs.getString("allowed-light-levels");
-        if (numberRange != null) setAmountRangeFromString(numberRange, spawnerOptions);
+        spawnerOptions.doImmediateSpawn = cs.getBoolean("immediate-spawn");
+        spawnerOptions.immediateSpawnResetPeriod = cs.getInt("immediate-spawn-reset-period");
+
+        Integer[] numberRange = getAmountRangeFromString(cs.getString("spawn-count"));
+        if (numberRange != null) {
+            spawnerOptions.spawnCount_Min = numberRange[0];
+            spawnerOptions.spawnCount_Max = numberRange[1];
+        }
+
+        numberRange = getAmountRangeFromString(cs.getString("allowed-light-levels"));
+        if (numberRange != null) {
+            spawnerOptions.allowedLightLevel_Min = numberRange[0];
+            spawnerOptions.allowedLightLevel_Max = numberRange[1];
+        }
+
+        numberRange = getAmountRangeFromString(cs.getString("allowed-skylight-levels"));
+        if (numberRange != null) {
+            spawnerOptions.allowedSkyLightLevel_Min = numberRange[0];
+            spawnerOptions.allowedSkyLightLevel_Max = numberRange[1];
+        }
+
+        numberRange = getAmountRangeFromString(cs.getString("allowed-block-light-levels"));
+        if (numberRange != null) {
+            spawnerOptions.allowedBlockLightLevel_Min = numberRange[0];
+            spawnerOptions.allowedBlockLightLevel_Max = numberRange[1];
+        }
 
         if (cs.getInt("slime-size-min", 0) > 0)
             spawnerOptions.slimeSizeMin = cs.getInt("slime-size-min");
@@ -68,32 +91,31 @@ public class FileLoader {
         return spawnerOptions;
     }
 
-    private static void setAmountRangeFromString(final String numberOrNumberRange, final @NotNull SpawnerOptions spawnerOptions){
-        if (numberOrNumberRange == null || numberOrNumberRange.isEmpty()) return;
+    @Nullable
+    private static Integer[] getAmountRangeFromString(final String numberOrNumberRange){
+        if (numberOrNumberRange == null || numberOrNumberRange.isEmpty()) return null;
 
         if (!numberOrNumberRange.contains("-")){
             if (!Utils.isInteger(numberOrNumberRange)) {
                 Utils.logger.warning("Invalid number: " + numberOrNumberRange);
-                return;
+                return null;
             }
 
-            spawnerOptions.allowedLightLevel_Min = Integer.parseInt(numberOrNumberRange);
-            spawnerOptions.allowedLightLevel_Max = spawnerOptions.allowedLightLevel_Min;
-            return;
+            return new Integer[]{ Integer.parseInt(numberOrNumberRange), Integer.parseInt(numberOrNumberRange) };
         }
 
         final String[] nums = numberOrNumberRange.split("-");
         if (nums.length != 2) {
             Utils.logger.warning("Invalid number range: " + numberOrNumberRange);
-            return;
+            return null;
         }
 
         if (!Utils.isInteger(nums[0].trim()) || !Utils.isInteger(nums[1].trim())) {
             Utils.logger.warning("Invalid number range: " + numberOrNumberRange);
-            return;
+            return null;
         }
-        spawnerOptions.allowedLightLevel_Min = Integer.parseInt(nums[0].trim());
-        spawnerOptions.allowedLightLevel_Max = Integer.parseInt(nums[1].trim());
+
+        return new Integer[]{ Integer.parseInt(nums[0].trim()), Integer.parseInt(nums[1].trim()) };
     }
 
     @Nullable

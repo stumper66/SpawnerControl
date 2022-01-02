@@ -109,8 +109,8 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
         final int baseZ = player.getLocation().getChunk().getZ();
 
         final Collection<Chunk> chunksAroundPlayer = new HashSet<>();
-        for (int x : offset) {
-            for (int z : offset) {
+        for (final int x : offset) {
+            for (final int z : offset) {
                 final Chunk chunk = world.getChunkAt(baseX + x, baseZ + z);
                 chunksAroundPlayer.add(chunk);
             }
@@ -129,7 +129,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
 
         CreatureSpawner cs = null;
         final Player player = (Player) sender;
-        BlockIterator blocks = new BlockIterator(player, 20);
+        final BlockIterator blocks = new BlockIterator(player, 20);
         while (blocks.hasNext()){
             final Block block = blocks.next();
             if (block.getType() != Material.SPAWNER) continue;

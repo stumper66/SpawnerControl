@@ -52,6 +52,7 @@ public class SpawnerProcessor {
         this.hasWorldGuard = SpawnerControl.isWorldGuardInstalled();
         this.spawnerCustomNameKey = new NamespacedKey(main, "spawnerCustomNameKey");
         this.updateProcessor = new UpdateProcessor(this);
+        this.invalidActiveSpawners = new LinkedList<>();
     }
 
     final SpawnerControl main;
@@ -60,6 +61,7 @@ public class SpawnerProcessor {
     @NotNull SpawnerOptions options;
     int lastWGCheckTicks;
     private final UpdateProcessor updateProcessor;
+    private final List<BasicLocation> invalidActiveSpawners;
     private final static int ticksPerCall = 40;
     public final NamespacedKey spawnerCustomNameKey;
     public UUID currentSpawningEntityId;
@@ -90,6 +92,7 @@ public class SpawnerProcessor {
         }
 
         makeSureSpawnersStillExist();
+        tickSpawnersForResetPeriod();
 
         if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.LIGHT_REQ_NOT_MET))
             Utils.logger.info("Spawners meeting light level criteria: " + spawnersMeetingLightCriteria.size());
@@ -115,64 +118,10 @@ public class SpawnerProcessor {
     }
 
     private void makeSureSpawnersStillExist(){
-        final Future<Boolean> future = makeSureSpawnersStillExist_NonAsync();
-        try {
-            future.get(500L, TimeUnit.MILLISECONDS);
+        for (final BasicLocation basicLocation : invalidActiveSpawners){
+            activeSpawners.remove(basicLocation);
+            updateProcessor.allSpawners.remove(basicLocation);
         }
-        catch (InterruptedException | ConcurrentModificationException | ExecutionException | TimeoutException e){
-            e.printStackTrace();
-        }
-    }
-
-    @NotNull
-    private Future<Boolean> makeSureSpawnersStillExist_NonAsync(){
-        final CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
-
-        final BukkitRunnable runnable = new BukkitRunnable() {
-            @Override
-            public void run() {
-                Set<SpawnerInfo> spawnersToRemove = null;
-                Set<SpawnerInfo> spawnersToUpdate = null;
-
-                for (final SpawnerInfo info : activeSpawners.values()){
-                    final Block block = info.getBasicLocation().getLocation().getBlock();
-                    if (block.getType() != Material.SPAWNER) {
-                        if (spawnersToRemove == null) spawnersToRemove = new HashSet<>();
-                        spawnersToRemove.add(info);
-                        continue;
-                    }
-
-                    final CreatureSpawner cs = (CreatureSpawner) block.getState();
-                    if (cs.getSpawnedType() != info.getCs().getSpawnedType()){
-                        if (spawnersToUpdate == null) spawnersToUpdate = new HashSet<>();
-                        info.setCs(cs);
-                        spawnersToUpdate.add(info);
-                    }
-                }
-
-                if (spawnersToRemove != null){
-                    for (final SpawnerInfo info : spawnersToRemove) {
-                        if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWNER_DEACTIVATION, info))
-                            Utils.logger.info("Spawner doesn't exist anymore: " + Utils.showSpawnerLocation(info.getCs()));
-
-                        activeSpawners.remove(info.getBasicLocation());
-                        updateProcessor.allSpawners.remove(info.getBasicLocation());
-                    }
-                }
-
-                if (spawnersToUpdate != null){
-                    for (final SpawnerInfo info : spawnersToUpdate){
-                        updateProcessor.allSpawners.put(info.getBasicLocation(), info.getCs());
-                        updateProcessor.evaluateTrackingCriteriaForSpawner(info.getCs(), info.getBasicLocation());
-                    }
-                }
-
-                completableFuture.complete(true);
-            }
-        };
-
-        runnable.runTask(main);
-        return completableFuture;
     }
 
     @NotNull
@@ -182,9 +131,38 @@ public class SpawnerProcessor {
         for (final BasicLocation basicLocation : activeSpawners.keySet()){
             final SpawnerInfo info = activeSpawners.get(basicLocation);
             if (info.options == null) info.options = new SpawnerOptions();
+
             final int lightLevel = info.getCs().getBlock().getLightLevel();
-            if (lightLevel >= info.options.allowedLightLevel_Min && lightLevel <= info.options.allowedLightLevel_Max)
-                spawners.add(basicLocation);
+            if (lightLevel < info.options.allowedLightLevel_Min || lightLevel > info.options.allowedLightLevel_Max) {
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.LIGHT_REQ_NOT_MET, info)) {
+                    Utils.logger.info(String.format(
+                            "Spawner doesn't meet light criteria of %s-%s. light level: %s. %s",
+                            info.options.allowedLightLevel_Min, info.options.allowedLightLevel_Max, info.getCs().getBlock().getLightLevel(), Utils.showSpawnerLocation(info.getCs())));
+                }
+                continue;
+            }
+
+            final int skyLightLevel = info.getCs().getBlock().getLightFromSky();
+            if (skyLightLevel < info.options.allowedSkyLightLevel_Min || skyLightLevel > info.options.allowedSkyLightLevel_Max) {
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.LIGHT_REQ_NOT_MET, info)) {
+                    Utils.logger.info(String.format(
+                            "Spawner doesn't meet sky light criteria of %s-%s. block light level: %s. %s",
+                            info.options.allowedSkyLightLevel_Min, info.options.allowedSkyLightLevel_Max, info.getCs().getBlock().getLightFromSky(), Utils.showSpawnerLocation(info.getCs())));
+                }
+                continue;
+            }
+
+            final int blockLightLevel = info.getCs().getBlock().getLightFromBlocks();
+            if (blockLightLevel < info.options.allowedBlockLightLevel_Min || blockLightLevel > info.options.allowedBlockLightLevel_Max) {
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.LIGHT_REQ_NOT_MET, info)) {
+                    Utils.logger.info(String.format(
+                            "Spawner doesn't meet block light criteria of %s-%s. block light level: %s. %s",
+                            info.options.allowedBlockLightLevel_Min, info.options.allowedBlockLightLevel_Max, info.getCs().getBlock().getLightFromBlocks(), Utils.showSpawnerLocation(info.getCs())));
+                }
+                continue;
+            }
+
+            spawners.add(basicLocation);
         }
 
         return spawners;
@@ -208,14 +186,8 @@ public class SpawnerProcessor {
                     continue;
 
                 // must have met light level criteria
-                if (!spawnersToCompare.contains(basicLocation)) {
-                    if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.LIGHT_REQ_NOT_MET, info)) {
-                        Utils.logger.info(String.format(
-                            "Spawner doesn't meet light criteria of %s-%s. block light level: %s. %s",
-                            info.options.allowedLightLevel_Min, info.options.allowedLightLevel_Max, info.getCs().getBlock().getLightLevel(), Utils.showSpawnerLocation(info.getCs())));
-                    }
+                if (!spawnersToCompare.contains(basicLocation))
                     continue;
-                }
 
                 final long distance = (long) Math.ceil(info.getCs().getLocation().distanceSquared(player.getLocation()));
                 if (distance <= info.options.playerRequiredRange)
@@ -235,7 +207,26 @@ public class SpawnerProcessor {
         return this.activeSpawners.values();
     }
 
+    private void tickSpawnersForResetPeriod(){
+        for (final SpawnerInfo info : activeSpawners.values()){
+            if (info.options != null && info.hasHadInitialSpawn && info.options.immediateSpawnResetPeriod > 0 &&
+                info.immediateSpawnResetTimeLeft > 0){
+                info.immediateSpawnResetTimeLeft -= ticksPerCall;
+                if (info.immediateSpawnResetTimeLeft <= 0)
+                    info.hasHadInitialSpawn = false;
+            }
+        }
+    }
+
     private boolean shouldSpawnerSpawnNow(final @NotNull SpawnerInfo info) {
+        if (info.options != null && info.options.doImmediateSpawn && !info.hasHadInitialSpawn){
+            info.hasHadInitialSpawn = true;
+            return true;
+        }
+
+        if (info.options != null && info.options.immediateSpawnResetPeriod > 0)
+            info.immediateSpawnResetTimeLeft = info.options.immediateSpawnResetPeriod;
+
         info.delayTimeLeft -= ticksPerCall;
 
         return info.delayTimeLeft <= 0;
@@ -287,7 +278,22 @@ public class SpawnerProcessor {
         final CreatureSpawner cs = info.getCs();
         if (info.options == null) info.options = this.options;
 
-        for (int i = 0; i < info.options.spawnCount; i++) {
+        int spawnCount = info.options.spawnCount_Min;
+        if (info.options.spawnCount_Max > spawnCount)
+            spawnCount = ThreadLocalRandom.current().nextInt(info.options.spawnCount_Min, info.options.spawnCount_Max + 1);
+
+        for (int i = 0; i < spawnCount; i++) {
+            if (i == 0){
+                // verify the spawner still exists first
+                if (info.getBasicLocation().getLocation().getBlock().getType() != Material.SPAWNER){
+                    invalidActiveSpawners.add(info.getBasicLocation());
+                    if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWNER_DEACTIVATION, info))
+                        Utils.logger.info("Spawner doesn't exist anymore: " + Utils.showSpawnerLocation(info.getCs()));
+
+                    return;
+                }
+            }
+
             final Location spawnLocation = getSpawnLocation(cs.getLocation());
             if (spawnLocation == null) {
                 if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_FAILED, info))

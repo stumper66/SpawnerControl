@@ -18,9 +18,11 @@ public class SpawnerInfo {
     }
 
     public int delayTimeLeft;
+    public int immediateSpawnResetTimeLeft;
     public @Nullable SpawnerOptions options;
     public @Nullable String matchedWGRegion;
     public boolean isChunkLoaded;
+    public boolean hasHadInitialSpawn;
     private @NotNull CreatureSpawner cs;
     private @NotNull BasicLocation basicLocation;
     private String spawnerCustomName;

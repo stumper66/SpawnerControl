@@ -1,41 +1,89 @@
-# to disable all functionality, change to false
+#  ======================================================================
+#                               __
+#       ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿    / _\_ __   __ ___      ___ __   ___ _ __
+#      ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠋⠁⠈⠉⢙⣿⣿⣿⣿⣿⣿   \ \| '_ \ / _` \ \ /\ / / '_ \ / _ \ '__|
+#     ⣿⣿⣿⣿⣿⣿⣿⣿⣿⡏⠋   ⢀⣴⣾⣿⣿⣿⣿⣿⣿⣿  _\ \ |_) | (_| |\ V  V /| | | |  __/ |
+#     ⣿⣿⣿⣿⣿⣿⣿⣿⣿    ⢠⣿⣿⣿⣿⠋⠉⠉⢿⣿⣿  \__/ .__/ \__,_| \_/\_/ |_| |_|\___|_|
+#     ⣿⣿⣿⣿⣿⣿⣿⣿⣿⠂    ⠈⠋⠋⠁   ⣾⣿⣿     |_|
+#     ⣿⣿⣿⣿⣿⣿⣿⠋⠁         ⢀⣴⣾⣿⣿⣿     ___            _             _
+#     ⣿⣿⣿⣿⣿⠋⠁     ⢀⣤⣤⣤⣤⣴⣾⣿⣿⣿⣿⣿    / __\___  _ __ | |_ _ __ ___ | |
+#     ⣿⣿⣏⠋⢀⣀    ⢠⣦⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿   / /  / _ \| '_ \| __| '__/ _ \| |
+#      ⣿⣗ ⣿⣿⠗ ⣠⣦⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿   / /__| (_) | | | | |_| | | (_) | |
+#       ⣿⣦⣤⣤⣤⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿    \____/\___/|_| |_|\__|_|  \___/|_|
+#
+#  ======================================================================
+
+# To completely disable SpawnerControl functionality, change this to 'false'.
 enable-spawner-control: true
 
+
+# Establish what worlds and mobs SpawnerControl will be allowed to work on.
 allowed-worlds:
-  allowed-list: ['world'] # for all worlds use *
+  allowed-list: ['world'] # For all worlds, use '*'.
   excluded-list: ['']
 
 allowed-entity-types:
-  allowed-list: ['slime'] # update to a list of entities that will be monitored
+  allowed-list: ['slime'] # For all mobs, use '*'.
   excluded-list: ['']
 
-# use a number range for the allowed light range to allow spawner activation
-# 0 = no light, 15 is the brighest.  To allow all light levels, use 0-15
+
+# Establish the minimum and maximum light level required for the spawner to activate.
+# By default, we use all light levels.
+#  0 = No Light Source
+# 15 = Brightest Light Source
 allowed-light-levels: 0-15
 
-# the distance (squared) a player must be near to a spawner to activate it
-player-required-range: 50
-# the minimum spawn delay amount (in ticks)
+# Other optional light criteria - Get the amount of light at this block from the sky.
+# Any light given from other sources (such as blocks like torches) will be ignored.
+allowed-skylight-levels: 0-15
+
+# Other optional light criteria - Get the amount of light at this block from nearby blocks.
+# Any light given from other sources (such as the sun) will be ignored.
+allowed-block-light-levels: 0-15
+
+# Establish the activation range of spawners when a player is nearby, measured in blocks.
+player-required-range: 6
+
+
+# Establish the minimum and maximum spawn delay, measured in ticks.
 min-spawn-delay: 200
-# the minimum spawn delay amount (in ticks)
 max-spawn-delay: 800
-# the maximum amount of similar entities that are allowed to be within player activation range of this spawner
+
+
+# Establish the maximum number of mobs of the same type within the range of the spawner.
 max-nearby-entities: 4
-# how many mobs attempt to spawn
-spawn-count: 1
-# the radius around which the spawner will attempt to spawn mobs in
+
+
+# Establish the maximum number of mobs which will attempt to spawn during each spawn event.
+# Can be a number or a number range
+spawn-count: 1-2
+
+
+# Establish the maximum number of blocks from the spawner a mob will attempt to spawn during each spawn event.
 spawn-range: 6
-# the spawner's delay (in ticks)
+
+
+# Establishes the spawner cube delay, measured in ticks.
 spawner-delay: 20
-# if false, mobs will only spawn on solid blocks
+
+
+# When set to 'false', mobs will only attempt to spawn on solid ground, rather than in the air.
 allow-air-spawning: false
 
-# slime specific settings
-# slime-size-min: 1
-# slime-size-max: 4
+# if set to true, the first time a spawner is activated by a player, it triggers a mob spawn immediately
+immediate-spawn: false
 
-# worldguard region example below:
+# if set to 0, the immiate-spawn will only happen once, otherwise it will reset after the specified number of ticks
+immediate-spawn-reset-period: 0
 
+# Unused Settings
+
+# Establish Slime-Specific modifications
+#slime-size-min: 1
+#slime-size-max: 4
+
+
+# Establish WorldGuard Region Exceptions
 worldguard-regions:
 #  - region_1:
 #    player-required-range: 100
@@ -48,6 +96,8 @@ worldguard-regions:
 #    allowed-entity-types:
 #      allowed-list: ['zombie', 'slime']
 
+
+# Establish Identified Spawner Exceptions
 named-spawners:
 #  - name_1:
 #    allowed-entity-types:
