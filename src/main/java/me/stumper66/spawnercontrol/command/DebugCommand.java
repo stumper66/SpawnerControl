@@ -15,17 +15,18 @@ import java.util.List;
 import java.util.Set;
 
 public class DebugCommand {
-    public DebugCommand(final @NotNull SpawnerControl main) {
-        this.di = main.debugInfo;
-    }
 
+    public DebugCommand(final @NotNull SpawnerControl main, final CommandProcessor commandProcessor) {
+        this.di = main.debugInfo;
+        this.main = main;
+        this.commandProcessor = commandProcessor;
+    }
+    private final SpawnerControl main;
     private final DebugInfo di;
+    private final CommandProcessor commandProcessor;
 
     void onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args){
-        if (!sender.hasPermission("spawnercontrol.debug")){
-            sender.sendMessage(MessageUtils.colorizeAll("&b&lSpawnerControl: &7You don't have permissions to run this command"));
-            return;
-        }
+        if(!commandProcessor.hasPermission("spawnercontrol.debug", sender)) return;
 
         if (args.length <= 1){
             showSyntax(sender);
@@ -35,11 +36,11 @@ public class DebugCommand {
         switch (args[1].toLowerCase()){
             case "disable":
                 di.debugIsEnabled = false;
-                sender.sendMessage("Debug is disabled");
+                main.sendPrefixedMessage(sender, "The debug system has been &cdisabled&7.");
                 break;
             case "enable":
                 di.debugIsEnabled = true;
-                sender.sendMessage("Debug is enabled");
+                main.sendPrefixedMessage(sender, "The debug system has been &aenabled&7.");
                 break;
             case "status":
                 showStatus(sender);
@@ -60,36 +61,38 @@ public class DebugCommand {
     }
 
     private void showSyntax(final @NotNull CommandSender sender){
-        sender.sendMessage("Options: disable | enable | status | debug_types | entity_types | spawner_names | region_names");
+        main.sendPrefixedMessage(sender, "Available debug options: &bdisable&7, &benable&7, &bstatus&7, &bdebug_types&7, &bentity_types&7, &bspawner_names&7 and &bregion_names&7.");
     }
 
-    private void showStatus(final @NotNull CommandSender sender){
-        final StringBuilder sb = new StringBuilder();
-        sb.append("Debug is ");
-        if (di.debugIsEnabled)
-            sb.append("&2enabled");
-        else
-            sb.append("&6disabled");
+    private void showStatus(final @NotNull CommandSender sender) {
+        main.sendPrefixedMessage(sender, "Debugging status:");
 
-        sb.append("&r\nSpawner names: &b");
+        final StringBuilder sb = new StringBuilder();
+        sb.append("&7Debugging is ");
+        if (di.debugIsEnabled)
+            sb.append("&aenabled");
+        else
+            sb.append("&cdisabled");
+
+        sb.append("&7.\n&7Spawner names: &b");
         if (di.enabledSpawnerNames.isEmpty())
             sb.append("(all)");
         else
             sb.append(di.enabledSpawnerNames);
 
-        sb.append("&r\nRegion names: &b");
+        sb.append("&r\n&7Region names: &b");
         if (di.enabledRegionNames.isEmpty())
             sb.append("(all)");
         else
             sb.append(di.enabledRegionNames);
 
-        sb.append("&r\nEntity types: &b");
+        sb.append("&r\n&7Entity types: &b");
         if (di.allEntityTypesEnabled)
             sb.append("(all)");
         else
             sb.append(di.enabledEntityTypes);
 
-        sb.append("&r\nDebug types: &b");
+        sb.append("&r\n&7Debug types: &b");
         if (di.enabledDebugTypes.isEmpty())
             sb.append("(all)");
         else
@@ -114,13 +117,13 @@ public class DebugCommand {
                 try {
                     type = DebugType.valueOf(args[i].toUpperCase());
                 } catch (Exception ignored) {
-                    sender.sendMessage("Invalid debug type: " + args[i]);
+                    main.sendPrefixedMessage(sender, "Invalid debug type '&b" + args[i] + "&7'.");
                     continue;
                 }
 
                 di.enabledDebugTypes.add(type);
             }
-            sender.sendMessage("Enabled debug type list has been updated");
+            main.sendPrefixedMessage(sender, "The enabled debug type list has been updated.");
         }
         else if ("remove".equalsIgnoreCase(args[2])){
             for (int i = 3; i < args.length; i++) {
@@ -137,10 +140,10 @@ public class DebugCommand {
 
                 di.enabledDebugTypes.remove(type);
             }
-            sender.sendMessage("Enabled debug type list has been updated");
+            main.sendPrefixedMessage(sender, "The enabled debug-type list has been updated.");
+        } else {
+            main.sendPrefixedMessage(sender, "Invalid option '&b" + args[2] + "&7'.");
         }
-        else
-            sender.sendMessage("Invalid option");
     }
 
     private void showOrUpdateEntityTypes(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args){
@@ -160,13 +163,13 @@ public class DebugCommand {
                 try {
                     type = EntityType.valueOf(args[i].toUpperCase());
                 } catch (Exception ignored) {
-                    sender.sendMessage("Invalid entity type: " + args[i]);
+                    main.sendPrefixedMessage(sender, "Invalid entity type '&b" + args[i] + "&7'.");
                     continue;
                 }
 
                 di.enabledEntityTypes.add(type);
             }
-            sender.sendMessage("Enabled entity type list has been updated");
+            main.sendPrefixedMessage(sender, "The enabled entity type list has been updated.");
         }
         else if ("remove".equalsIgnoreCase(args[2])){
             for (int i = 3; i < args.length; i++) {
@@ -184,36 +187,36 @@ public class DebugCommand {
 
                 di.enabledEntityTypes.remove(type);
             }
-            sender.sendMessage("Enabled entity type list has been updated");
+            main.sendPrefixedMessage(sender, "The enabled entity type list has been updated.");
         }
         else
-            sender.sendMessage("Invalid option");
+            main.sendPrefixedMessage(sender, "Invalid option '&b" + args[2] + "&7'.");
     }
 
     private void showOrUpdateSpawnerNames(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args){
         if (args.length == 2){
             if (di.enabledSpawnerNames.isEmpty())
-                sender.sendMessage("Spawner names: all");
+                main.sendPrefixedMessage(sender, "Spawner names: &b(all)");
             else
-                sender.sendMessage("Spawner names: " + di.enabledSpawnerNames);
+                main.sendPrefixedMessage(sender, "Spawner names: &b" + di.enabledSpawnerNames);
             return;
         }
 
         updateStringSet(sender, args, di.enabledSpawnerNames);
-        sender.sendMessage("Updated spawner names list");
+        main.sendPrefixedMessage(sender, "The spawner names list has been updated.");
     }
 
     private void showOrUpdateRegionNames(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args){
         if (args.length == 2){
             if (di.enabledRegionNames.isEmpty())
-                sender.sendMessage("Region names: all");
+                main.sendPrefixedMessage(sender, "Region names: &b(all)");
             else
-                sender.sendMessage("Region names: " + di.enabledRegionNames);
+                main.sendPrefixedMessage(sender, "Region names: &b" + di.enabledRegionNames);
             return;
         }
 
         updateStringSet(sender, args, di.enabledRegionNames);
-        sender.sendMessage("Updated region names list");
+        main.sendPrefixedMessage(sender, "The region names list has been updated.");
     }
 
     private void updateStringSet(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args, final @NotNull Set<String> names){
@@ -225,19 +228,20 @@ public class DebugCommand {
             }
         }
         else
-            sender.sendMessage("Invalid option");
+            main.sendPrefixedMessage(sender, "Invalid option '&b" + args[2] + "&7'.");
     }
 
-    private void showEnabledDebugTypes(final @NotNull CommandSender sender){
-        final StringBuilder sb = new StringBuilder();
+    private void showEnabledDebugTypes(final @NotNull CommandSender sender) {
+        main.sendPrefixedMessage(sender, "Enabled debug types status:");
 
+        final StringBuilder sb = new StringBuilder();
         if (di.enabledDebugTypes.isEmpty())
-            sb.append("No debug types are currently enabled");
+            sb.append("&7No debug types are currently enabled.");
         else {
-            sb.append("Enabled types: ");
+            sb.append("&7Enabled types: &b");
             int count = 0;
             for (final DebugType type : di.enabledDebugTypes){
-                if (count > 0) sb.append(", ");
+                if (count > 0) sb.append("&7, &b");
 
                 sb.append(type.toString().toLowerCase());
                 count++;
@@ -249,13 +253,13 @@ public class DebugCommand {
             return;
         }
 
-        sb.append("\nAvailable types: ");
+        sb.append("\n&7Available types: ");
         for (int i = 0; i < DebugType.values().length; i++){
             if (i > 0) sb.append(", ");
             sb.append(DebugType.values()[i].toString().toLowerCase());
         }
 
-        sender.sendMessage(sb.toString());
+        sender.sendMessage(MessageUtils.colorizeAll(sb.toString()));
     }
 
     @NotNull
@@ -263,7 +267,7 @@ public class DebugCommand {
         if (!sender.hasPermission("spawnercontrol.debug")) return Collections.emptyList();
 
         if (args.length == 2)
-            return List.of("disable", "enable", "status", "debug_types", "mob_types", "spawner_names", "region_names");
+            return Arrays.asList("disable", "enable", "status", "debug_types", "mob_types", "spawner_names", "region_names");
 
         if ("debug_types".equalsIgnoreCase(args[1]))
              return tabCompleteForDebugTypes(args);
@@ -283,7 +287,7 @@ public class DebugCommand {
     @NotNull
     private List<String> tabCompleteForNames(final @NotNull String @NotNull [] args, final @NotNull Set<String> names){
         if (args.length == 3)
-            return List.of("add", "remove");
+            return Arrays.asList("add", "remove");
 
         if ("remove".equalsIgnoreCase(args[2]))
             return new LinkedList<>(names);
@@ -294,7 +298,7 @@ public class DebugCommand {
     @NotNull
     private List<String> tabCompleteForDebugTypes(final @NotNull String @NotNull [] args){
         if (args.length == 3)
-            return List.of("add", "remove");
+            return Arrays.asList("add", "remove");
 
         if ("add".equalsIgnoreCase(args[2])) {
             final List<DebugType> types = new LinkedList<>();
@@ -344,7 +348,7 @@ public class DebugCommand {
     @NotNull
     private List<String> tabCompleteForEntityTypes(final @NotNull String @NotNull [] args){
         if (args.length == 3)
-            return List.of("add", "remove");
+            return Arrays.asList("add", "remove");
 
         if ("add".equalsIgnoreCase(args[2])) {
             final List<EntityType> types = new LinkedList<>();

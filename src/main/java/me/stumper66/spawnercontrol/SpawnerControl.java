@@ -1,5 +1,6 @@
 package me.stumper66.spawnercontrol;
 
+import me.lokka30.microlib.messaging.MessageUtils;
 import me.stumper66.spawnercontrol.command.CommandProcessor;
 import me.stumper66.spawnercontrol.listener.BlockBreakListener;
 import me.stumper66.spawnercontrol.listener.BlockPlaceListener;
@@ -8,15 +9,19 @@ import me.stumper66.spawnercontrol.listener.PlayerInteractEventListener;
 import me.stumper66.spawnercontrol.listener.SpawnerSpawnListener;
 import me.stumper66.spawnercontrol.processing.SpawnerProcessor;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.Arrays;
 import java.util.Map;
 
 public class SpawnerControl extends JavaPlugin {
+
     public YamlConfiguration settings;
     public boolean isEnabled;
     public SpawnerProcessor spawnerProcessor;
@@ -37,7 +42,7 @@ public class SpawnerControl extends JavaPlugin {
 
         startRunnables();
 
-        Utils.logger.info("Done loading");
+        Utils.logger.info("Loading complete.");
     }
 
     @Override
@@ -56,12 +61,13 @@ public class SpawnerControl extends JavaPlugin {
     }
 
     private void registerListeners() {
-        final PluginManager pm = Bukkit.getPluginManager();
-        pm.registerEvents(new BlockPlaceListener(this), this);
-        pm.registerEvents(new BlockBreakListener(this), this);
-        pm.registerEvents(new ChunkLoadListener(this), this);
-        pm.registerEvents(new PlayerInteractEventListener(this), this);
-        pm.registerEvents(new SpawnerSpawnListener(this), this);
+        Arrays.asList(
+                new BlockBreakListener(this),
+                new BlockPlaceListener(this),
+                new ChunkLoadListener(this),
+                new PlayerInteractEventListener(this),
+                new SpawnerSpawnListener(this)
+        ).forEach(listener -> Bukkit.getPluginManager().registerEvents(listener, this));
     }
 
     private void startRunnables() {
@@ -87,5 +93,9 @@ public class SpawnerControl extends JavaPlugin {
 
     public static boolean isWorldGuardInstalled() {
         return Bukkit.getPluginManager().getPlugin("WorldGuard") != null;
+    }
+
+    public void sendPrefixedMessage(final CommandSender sender, final String msg) {
+        sender.sendMessage(MessageUtils.colorizeAll("&b&lSpawnerControl: &7" + msg));
     }
 }

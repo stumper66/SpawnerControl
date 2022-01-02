@@ -16,6 +16,7 @@ import org.bukkit.util.BlockIterator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -23,7 +24,7 @@ import java.util.List;
 public class CommandProcessor implements CommandExecutor, TabCompleter  {
     public CommandProcessor(final SpawnerControl main) {
         this.main = main;
-        this.debugCommand = new DebugCommand(main);
+        this.debugCommand = new DebugCommand(main, this);
     }
 
     private final SpawnerControl main;
@@ -70,7 +71,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
         if (!hasPermission("spawnercontrol.label", sender)) return;
 
         if (!(sender instanceof Player)){
-            sender.sendMessage("Command must be run from by a player");
+            main.sendPrefixedMessage(sender, "This command may only be ran by players.");
             return;
         }
 
@@ -86,19 +87,19 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
         }
 
         if (cs == null){
-            sender.sendMessage("You must be looking at a spawner first");
+            main.sendPrefixedMessage(sender, "You must be looking at a spawner first.");
             return;
         }
 
         final SpawnerInfo info = new SpawnerInfo(cs, main.spawnerOptions);
         final String customName = info.getSpawnerCustomName(main);
         if (customName == null)
-            sender.sendMessage("spawner " + Utils.showSpawnerLocation(cs) + " has no name currently");
+            main.sendPrefixedMessage(sender, "The spawner &r" + Utils.showSpawnerLocation(cs) + "&7 has no name yet.");
         else
-            sender.sendMessage("spawner " + Utils.showSpawnerLocation(cs) + " name: " + customName);
+            main.sendPrefixedMessage(sender, "The spawner &r" + Utils.showSpawnerLocation(cs) + "&7 has the name '&r" + customName + "&7'.");
 
-        if (args.length == 1){
-            sender.sendMessage("to change the name, enter: /" + label + " <new name>");
+        if (args.length == 1) {
+            main.sendPrefixedMessage(sender, "To change the name, try: &b/" + label + " <new name>");
         }
 
         final StringBuilder sb = new StringBuilder();
@@ -109,18 +110,26 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
 
         final String newName = sb.toString().trim();
         if (newName.isEmpty()) return;
-        if (customName != null && customName.equals(newName)){
-            sender.sendMessage("spawner new name is the same as the old name");
+        if (customName != null && customName.equals(newName)) {
+            main.sendPrefixedMessage(sender, "The spawner's new name can't be the same as the spawner's old name.");
             return;
         }
 
         info.setSpawnerCustomName(newName, main);
         main.spawnerProcessor.spawnerGotRenamed(cs, customName, newName);
-        sender.sendMessage("spawner name updated to: " + newName);
+        main.sendPrefixedMessage(sender, "The spawner's name has been updated to '&r" + newName + "&7'.");
     }
 
     private void showSyntax(@NotNull final CommandSender sender, @NotNull final String label) {
-        sender.sendMessage(MessageUtils.colorizeAll("&b&lSpawnerControl: &7Syntax: &b/" + label + " reload | info | enable | disable | spawners"));
+        Arrays.asList(
+                "&b&lSpawnerControl:&7 Available commands:",
+                "&8 &m->&b /" + label + " reload &8- &7reload the config",
+                "&8 &m->&b /" + label + " info &8- &7view info about the plugin",
+                "&8 &m->&b /" + label + " enable &8- &7enable spawner controlling",
+                "&8 &m->&b /" + label + " disable &8- &7disable spawner controlling",
+                "&8 &m->&b /" + label + " debug &8- &7run debugging functionality",
+                "&8 &m->&b /" + label + " spawners &8- &7view managed spawners"
+        ).forEach(msg -> sender.sendMessage(MessageUtils.colorizeAll(msg)));
     }
 
     private void enableOrDisable(@NotNull final CommandSender sender, final boolean doEnable){
@@ -128,21 +137,21 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
 
         if (doEnable) {
             if (main.isEnabled){
-                sender.sendMessage("SpawnerControl was already enabled!");
+                main.sendPrefixedMessage(sender, "Spawner controlling is already &aenabled&7.");
                 return;
             }
 
             main.isEnabled = true;
-            sender.sendMessage("SpawnerControl has been enabled");
+            main.sendPrefixedMessage(sender, "Spawner controlling has been &aenabled&7.");
         }
         else {
             if (!main.isEnabled){
-                sender.sendMessage("SpawnerControl was already disabled!");
+                main.sendPrefixedMessage(sender, "Spawner controlling is already &cdisabled&7.");
                 return;
             }
 
             main.isEnabled = false;
-            sender.sendMessage("SpawnerControl has been disabled");
+            main.sendPrefixedMessage(sender, "Spawner controlling has been &cdisabled&7.");
         }
     }
 
@@ -151,48 +160,53 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
         final String description = main.getDescription().getDescription();
 
         sender.sendMessage(MessageUtils.colorizeAll("\n" +
-                "&b&SpawnerControl &fv" + version + "&r\n" +
+                "&b&lSpawnerControl &fv" + version + "&r\n" +
                 "&7&o" + description + "&r\n" +
                 "&7Created by Stumper66"));
+        Arrays.asList(
+                "&8&m+------------------+",
+                "&b&lSpawnerControl&f v" + version,
+                "&7&o" + description,
+                "&7Created by &bstumper66&7.",
+                "&8&m+------------------+"
+        ).forEach(msg -> sender.sendMessage(MessageUtils.colorizeAll(msg)));
     }
 
     private void showSpawners(@NotNull final CommandSender sender){
         if (!hasPermission("spawnercontrol.spawners", sender)) return;
 
-        sender.sendMessage("All known spawners count: " + main.spawnerProcessor.getAllKnownSpawnersCount());
-        final Collection<SpawnerInfo> spawnerInfos = main.spawnerProcessor.getMonitoredSpawners();
-        if (spawnerInfos.isEmpty()){
-            sender.sendMessage("There are no spawners currently monitored");
+        main.sendPrefixedMessage(sender, "All known spawners count: &b" + main.spawnerProcessor.getAllKnownSpawnersCount());
+        final Collection<SpawnerInfo> spawnerInfo = main.spawnerProcessor.getMonitoredSpawners();
+        if (spawnerInfo.isEmpty()) {
+            main.sendPrefixedMessage(sender, "There are currently no spawners being monitored.");
             return;
         }
 
-        final StringBuilder sb = new StringBuilder();
-        for (final SpawnerInfo info : spawnerInfos){
+        main.sendPrefixedMessage(sender, "Active spawners &8(&b" + main.spawnerProcessor.getActiveSpawnersCount() + "&8)&7:");
+        for(final SpawnerInfo info : spawnerInfo) {
             final CreatureSpawner cs = info.getCs();
-            if (sb.length() > 0) sb.append("\n");
-            sb.append(Utils.showSpawnerLocation(cs));
+            sender.sendMessage(MessageUtils.colorizeAll("&8 &m->&r " + Utils.showSpawnerLocation(cs)));
         }
-
-        sender.sendMessage("Active spawners: " + main.spawnerProcessor.getActiveSpawnersCount() + "\n" + sb);
     }
 
     private void doReload(@NotNull final CommandSender sender) {
         if (!hasPermission("spawnercontrol.reload", sender)) return;
 
-        sender.sendMessage(MessageUtils.colorizeAll("&b&lSpawnerControl: &7Reloading config..."));
+        main.sendPrefixedMessage(sender, "Reloading config...");
         main.loadConfig(true);
-        sender.sendMessage(MessageUtils.colorizeAll("&b&lSpawnerControl: &7Reload complete."));
+        main.sendPrefixedMessage(sender, "Reload complete.");
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private boolean hasPermission(final @NotNull String permisison, final @NotNull CommandSender sender){
+    public boolean hasPermission(final @NotNull String permisison, final @NotNull CommandSender sender){
         if (!sender.hasPermission(permisison)){
-            sender.sendMessage(MessageUtils.colorizeAll("&b&lSpawnerControl: &7You don't have permissions to run this command"));
+            main.sendPrefixedMessage(sender, "You don't have permission to access that.");
             return false;
         }
-
         return true;
     }
+
+    private final List<String> SUBCOMMANDS = Arrays.asList("debug", "reload", "info", "label", "spawners", "enable", "disable");
 
     @Nullable
     @Override
@@ -200,7 +214,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
         if (args.length > 1 && "debug".equals(args[0]))
             return debugCommand.onTabComplete(commandSender, args);
         else if (args.length == 1)
-            return List.of("debug", "reload", "info", "label", "spawners", "disable", "enable");
+            return SUBCOMMANDS;
 
         return Collections.emptyList();
     }

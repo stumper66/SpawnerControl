@@ -1,6 +1,8 @@
 package me.stumper66.spawnercontrol;
 
+import me.lokka30.microlib.messaging.MessageUtils;
 import me.lokka30.microlib.messaging.MicroLogger;
+import org.apache.commons.lang.WordUtils;
 import org.bukkit.block.CreatureSpawner;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -8,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("unused")
 public class Utils {
     @NotNull
-    public static final MicroLogger logger = new MicroLogger("&b&lSpawnerControl: &7");
+    public static final MicroLogger logger = new MicroLogger("&b&lSpawnerControl:&7 ");
 
     public static double round(final double value) {
         return Math.round(value * 100) / 100.00;
@@ -20,13 +22,13 @@ public class Utils {
     }
 
     public static String showSpawnerLocation(final @NotNull CreatureSpawner cs){
-        return String.format("%s, %s, %s, %s, %s",
-                cs.getSpawnedType(),
-                cs.getLocation().getWorld().getName(),
+        return MessageUtils.colorizeAll(String.format("&8[&b%s &7@ &b%s&7, &b%s&7, &b%s&7 in '&b%s&7'&8]&7",
+                WordUtils.capitalizeFully(cs.getSpawnedType().toString()),
                 cs.getLocation().getBlockX(),
                 cs.getLocation().getBlockY(),
-                cs.getLocation().getBlockZ()
-        );
+                cs.getLocation().getBlockZ(),
+                cs.getLocation().getWorld().getName()
+        ));
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
