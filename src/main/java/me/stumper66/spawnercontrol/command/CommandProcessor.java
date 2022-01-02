@@ -4,8 +4,12 @@ import me.lokka30.microlib.messaging.MessageUtils;
 import me.stumper66.spawnercontrol.SpawnerControl;
 import me.stumper66.spawnercontrol.SpawnerInfo;
 import me.stumper66.spawnercontrol.Utils;
+import me.stumper66.spawnercontrol.processing.UpdateOperation;
+import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -16,9 +20,9 @@ import org.bukkit.util.BlockIterator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 public class CommandProcessor implements CommandExecutor, TabCompleter  {
@@ -59,12 +63,60 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
             case "label":
                 showOrUpdateLabel(sender, label, args);
                 break;
+            case "scan_near":
+                scanNear(sender);
+                break;
             default:
                 showSyntax(sender, label);
                 break;
         }
 
         return true;
+    }
+
+    private void scanNear(@NotNull final CommandSender sender){
+        if (!hasPermission("spawnercontrol.scannear", sender)) return;
+
+        if (!(sender instanceof Player)){
+            main.sendPrefixedMessage(sender, "This command may only be ran by players.");
+            return;
+        }
+
+        int count = 0;
+        for (final Chunk chunk : getChunksAroundPlayer((Player) sender)){
+            for (final BlockState state : chunk.getTileEntities()) {
+                if (!(state instanceof CreatureSpawner)) continue;
+
+                final CreatureSpawner cs = (CreatureSpawner) state;
+                main.spawnerProcessor.updateSpawner(cs, UpdateOperation.ADD);
+                count++;
+            }
+        }
+
+        if (count == 0)
+            main.sendPrefixedMessage(sender, "No spawners were detected");
+        else
+            main.sendPrefixedMessage(sender, "Processing " + count + " spawners");
+    }
+
+    @NotNull
+    private Collection<Chunk> getChunksAroundPlayer(final @NotNull Player player) {
+        // https://www.spigotmc.org/threads/get-chunks-around-players-chunk.73189/
+        final int[] offset = { -1, 0, 1 };
+
+        final World world = player.getWorld();
+        final int baseX = player.getLocation().getChunk().getX();
+        final int baseZ = player.getLocation().getChunk().getZ();
+
+        final Collection<Chunk> chunksAroundPlayer = new HashSet<>();
+        for (int x : offset) {
+            for (int z : offset) {
+                final Chunk chunk = world.getChunkAt(baseX + x, baseZ + z);
+                chunksAroundPlayer.add(chunk);
+            }
+        }
+
+        return chunksAroundPlayer;
     }
 
     private void showOrUpdateLabel(@NotNull final CommandSender sender, final @NotNull String label, final @NotNull String @NotNull [] args){
@@ -121,14 +173,15 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
     }
 
     private void showSyntax(@NotNull final CommandSender sender, @NotNull final String label) {
-        Arrays.asList(
+        List.of(
                 "&b&lSpawnerControl:&7 Available commands:",
                 "&8 &m->&b /" + label + " reload &8- &7reload the config",
                 "&8 &m->&b /" + label + " info &8- &7view info about the plugin",
                 "&8 &m->&b /" + label + " enable &8- &7enable spawner controlling",
                 "&8 &m->&b /" + label + " disable &8- &7disable spawner controlling",
                 "&8 &m->&b /" + label + " debug &8- &7run debugging functionality",
-                "&8 &m->&b /" + label + " spawners &8- &7view managed spawners"
+                "&8 &m->&b /" + label + " spawners &8- &7view managed spawners",
+                "&8 &m->&b /" + label + " scan_near &8- &7view managed spawners"
         ).forEach(msg -> sender.sendMessage(MessageUtils.colorizeAll(msg)));
     }
 
@@ -163,11 +216,11 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
                 "&b&lSpawnerControl &fv" + version + "&r\n" +
                 "&7&o" + description + "&r\n" +
                 "&7Created by Stumper66"));
-        Arrays.asList(
+        List.of(
                 "&8&m+------------------+",
                 "&b&lSpawnerControl&f v" + version,
                 "&7&o" + description,
-                "&7Created by &bstumper66&7.",
+                "&7Created by &bstumper66&7. Contributions from &bLokka30&7",
                 "&8&m+------------------+"
         ).forEach(msg -> sender.sendMessage(MessageUtils.colorizeAll(msg)));
     }
@@ -206,7 +259,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
         return true;
     }
 
-    private final List<String> SUBCOMMANDS = Arrays.asList("debug", "reload", "info", "label", "spawners", "enable", "disable");
+    private final List<String> SUBCOMMANDS = List.of("debug", "reload", "info", "label", "spawners", "enable", "disable", "scan_near");
 
     @Nullable
     @Override

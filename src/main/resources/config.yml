@@ -9,6 +9,7 @@ allowed-entity-types:
   allowed-list: ['slime'] # update to a list of entities that will be monitored
   excluded-list: ['']
 
+# use a number range for the allowed light range to allow spawner activation
 # 0 = no light, 15 is the brighest.  To allow all light levels, use 0-15
 allowed-light-levels: 0-15
 

@@ -10,6 +10,7 @@ import me.stumper66.spawnercontrol.Utils;
 import me.stumper66.spawnercontrol.WorldGuardManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.World;
@@ -88,6 +89,8 @@ public class SpawnerProcessor {
             return;
         }
 
+        makeSureSpawnersStillExist();
+
         if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.LIGHT_REQ_NOT_MET))
             Utils.logger.info("Spawners meeting light level criteria: " + spawnersMeetingLightCriteria.size());
 
@@ -109,6 +112,67 @@ public class SpawnerProcessor {
                 info.resetTimeLeft(options);
             }
         }
+    }
+
+    private void makeSureSpawnersStillExist(){
+        final Future<Boolean> future = makeSureSpawnersStillExist_NonAsync();
+        try {
+            future.get(500L, TimeUnit.MILLISECONDS);
+        }
+        catch (InterruptedException | ConcurrentModificationException | ExecutionException | TimeoutException e){
+            e.printStackTrace();
+        }
+    }
+
+    @NotNull
+    private Future<Boolean> makeSureSpawnersStillExist_NonAsync(){
+        final CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
+
+        final BukkitRunnable runnable = new BukkitRunnable() {
+            @Override
+            public void run() {
+                Set<SpawnerInfo> spawnersToRemove = null;
+                Set<SpawnerInfo> spawnersToUpdate = null;
+
+                for (final SpawnerInfo info : activeSpawners.values()){
+                    final Block block = info.getBasicLocation().getLocation().getBlock();
+                    if (block.getType() != Material.SPAWNER) {
+                        if (spawnersToRemove == null) spawnersToRemove = new HashSet<>();
+                        spawnersToRemove.add(info);
+                        continue;
+                    }
+
+                    final CreatureSpawner cs = (CreatureSpawner) block.getState();
+                    if (cs.getSpawnedType() != info.getCs().getSpawnedType()){
+                        if (spawnersToUpdate == null) spawnersToUpdate = new HashSet<>();
+                        info.setCs(cs);
+                        spawnersToUpdate.add(info);
+                    }
+                }
+
+                if (spawnersToRemove != null){
+                    for (final SpawnerInfo info : spawnersToRemove) {
+                        if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWNER_DEACTIVATION, info))
+                            Utils.logger.info("Spawner doesn't exist anymore: " + Utils.showSpawnerLocation(info.getCs()));
+
+                        activeSpawners.remove(info.getBasicLocation());
+                        updateProcessor.allSpawners.remove(info.getBasicLocation());
+                    }
+                }
+
+                if (spawnersToUpdate != null){
+                    for (final SpawnerInfo info : spawnersToUpdate){
+                        updateProcessor.allSpawners.put(info.getBasicLocation(), info.getCs());
+                        updateProcessor.evaluateTrackingCriteriaForSpawner(info.getCs(), info.getBasicLocation());
+                    }
+                }
+
+                completableFuture.complete(true);
+            }
+        };
+
+        runnable.runTask(main);
+        return completableFuture;
     }
 
     @NotNull

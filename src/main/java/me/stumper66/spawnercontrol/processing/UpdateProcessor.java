@@ -122,7 +122,7 @@ public class UpdateProcessor {
         }
     }
 
-    private void evaluateTrackingCriteriaForSpawner(final @NotNull CreatureSpawner cs, final @NotNull BasicLocation basicLocation){
+    void evaluateTrackingCriteriaForSpawner(final @NotNull CreatureSpawner cs, final @NotNull BasicLocation basicLocation){
         SpawnerInfo info = sp.activeSpawners.get(basicLocation);
         if (info == null)
             info = new SpawnerInfo(cs, sp.options);

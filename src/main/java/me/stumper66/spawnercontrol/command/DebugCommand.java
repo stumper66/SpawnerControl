@@ -110,7 +110,7 @@ public class DebugCommand {
         if ("add".equalsIgnoreCase(args[2])){
             for (int i = 3; i < args.length; i++) {
                 if ("*".equals(args[i])){
-                    di.enabledDebugTypes.addAll(Arrays.asList(DebugType.values()));
+                    di.enabledDebugTypes.addAll(List.of(DebugType.values()));
                     break;
                 }
                 DebugType type;
@@ -267,7 +267,7 @@ public class DebugCommand {
         if (!sender.hasPermission("spawnercontrol.debug")) return Collections.emptyList();
 
         if (args.length == 2)
-            return Arrays.asList("disable", "enable", "status", "debug_types", "mob_types", "spawner_names", "region_names");
+            return List.of("disable", "enable", "status", "debug_types", "mob_types", "spawner_names", "region_names");
 
         if ("debug_types".equalsIgnoreCase(args[1]))
              return tabCompleteForDebugTypes(args);
@@ -287,7 +287,7 @@ public class DebugCommand {
     @NotNull
     private List<String> tabCompleteForNames(final @NotNull String @NotNull [] args, final @NotNull Set<String> names){
         if (args.length == 3)
-            return Arrays.asList("add", "remove");
+            return List.of("add", "remove");
 
         if ("remove".equalsIgnoreCase(args[2]))
             return new LinkedList<>(names);
@@ -298,7 +298,7 @@ public class DebugCommand {
     @NotNull
     private List<String> tabCompleteForDebugTypes(final @NotNull String @NotNull [] args){
         if (args.length == 3)
-            return Arrays.asList("add", "remove");
+            return List.of("add", "remove");
 
         if ("add".equalsIgnoreCase(args[2])) {
             final List<DebugType> types = new LinkedList<>();
@@ -348,7 +348,7 @@ public class DebugCommand {
     @NotNull
     private List<String> tabCompleteForEntityTypes(final @NotNull String @NotNull [] args){
         if (args.length == 3)
-            return Arrays.asList("add", "remove");
+            return List.of("add", "remove");
 
         if ("add".equalsIgnoreCase(args[2])) {
             final List<EntityType> types = new LinkedList<>();
