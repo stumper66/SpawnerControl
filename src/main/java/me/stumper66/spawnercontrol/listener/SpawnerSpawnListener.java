@@ -1,7 +1,6 @@
 package me.stumper66.spawnercontrol.listener;
 
 import me.stumper66.spawnercontrol.SpawnerControl;
-import me.stumper66.spawnercontrol.Utils;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;

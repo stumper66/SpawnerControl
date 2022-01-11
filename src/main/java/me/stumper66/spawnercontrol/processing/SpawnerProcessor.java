@@ -9,6 +9,7 @@ import me.stumper66.spawnercontrol.SpigotCompat;
 import me.stumper66.spawnercontrol.Utils;
 import me.stumper66.spawnercontrol.WorldGuardManager;
 import org.bukkit.Bukkit;
+import org.bukkit.ChunkSnapshot;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -17,6 +18,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -74,16 +76,16 @@ public class SpawnerProcessor {
 
         updateProcessor.processUpdates();
         if (Bukkit.getOnlinePlayers().size() == 0) return;
-        if (this.activeSpawners.isEmpty()) return;
 
         if (hasWorldGuard && lastWGCheckTicks == -1 || lastWGCheckTicks >= 160){
             // updates roughly every 8 seconds
             this.lastWGCheckTicks = 0;
-            WorldGuardManager.updateWorlguardOptionsForTrackedSpawners(main, this.activeSpawners);
+            WorldGuardManager.updateWorlguardOptionsForTrackedSpawners(main, updateProcessor.allSpawners, this.activeSpawners);
         }
         else if (hasWorldGuard)
             this.lastWGCheckTicks += ticksPerCall;
 
+        if (this.activeSpawners.isEmpty()) return;
         final Set<BasicLocation> spawnersMeetingLightCriteria = getSpawnersMeetingLightCriteria();
         if (spawnersMeetingLightCriteria.isEmpty()){
             if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.LIGHT_REQ_NOT_MET))
@@ -190,7 +192,7 @@ public class SpawnerProcessor {
                     continue;
 
                 final long distance = (long) Math.ceil(info.getCs().getLocation().distanceSquared(player.getLocation()));
-                if (distance <= info.options.playerRequiredRange)
+                if (distance <= info.options.getEffectivePlayerRequiredRange())
                     spawners.add(basicLocation);
             }
 
@@ -294,7 +296,7 @@ public class SpawnerProcessor {
                 }
             }
 
-            final Location spawnLocation = getSpawnLocation(cs.getLocation());
+            final Location spawnLocation = getSpawnLocation(cs.getLocation(), cs.getSpawnedType());
             if (spawnLocation == null) {
                 if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_FAILED, info))
                     Utils.logger.info("Could not find a suitable spawn location: " + Utils.showSpawnerLocation(cs));
@@ -360,7 +362,7 @@ public class SpawnerProcessor {
     }
 
     @Nullable
-    private Location getSpawnLocation(final @NotNull Location spawnerLocation) {
+    private Location getSpawnLocation(final @NotNull Location spawnerLocation, final @NotNull EntityType entityType) {
         if (spawnerLocation.getWorld() == null) return null;
 
         final World world = spawnerLocation.getWorld();
@@ -368,6 +370,11 @@ public class SpawnerProcessor {
         final int y1 = spawnerLocation.getBlockY();
         final int z1 = spawnerLocation.getBlockZ();
         final List<Block> blockCandidates = new LinkedList<>();
+        int blocksNeeded;
+        if (entityType == EntityType.ENDERMAN || entityType == EntityType.RAVAGER)
+            blocksNeeded = 3;
+        else
+            blocksNeeded = 2;
 
         for (int i = 0; i < 50; i++) {
             int i0 = (int) (x1 + ThreadLocalRandom.current().nextDouble() - ThreadLocalRandom.current().nextDouble() * (double) options.spawnRange + 0.5D);
@@ -379,7 +386,7 @@ public class SpawnerProcessor {
                 blockCandidates.add(block);
             }
 
-            if (blockCandidates.size() >= 6) break;
+            if (blockCandidates.size() >= 10) break;
         }
 
         if (blockCandidates.isEmpty())
@@ -389,29 +396,17 @@ public class SpawnerProcessor {
 
         // return first block from the candiates that has 2 air spaces above it
         for (final Block block : blockCandidates){
-            if (world.getBlockAt(block.getX(), block.getY() + 1, block.getZ()).getType().isAir() &&
-                    world.getBlockAt(block.getX(), block.getY() + 2, block.getZ()).getType().isAir()){
-                int addX = 1;
-                int addZ = 0;
-                for (int x = 0; x < 4; x++){
-                    if (x == 1) addX = -1;
-                    else if (x == 2) {
-                        addZ = 1;
-                        addX = 0;
-                    }
-                    else if (x == 3) addZ = -1;
-
-                    final Block blockCheck = world.getBlockAt(block.getX() + addX, block.getY() + 1, block.getZ() + addZ);
-                    if (blockCheck.getType().isAir() &&
-                            world.getBlockAt(block.getX() + addX, block.getY() + 2, block.getZ() + addZ).getType().isAir()){
-                        // found an adjacent space. shift the spawn point over by 0.5 to prevent spawning in the wall
-                        final double newX = (double) addX * 0.5;
-                        final double newZ = (double) addZ * 0.5;
-
-                        return block.getLocation().add(newX, 1.0, newZ);
-                    }
+            boolean notGoodSpot = false;
+            for (int i = 1; i < blocksNeeded + 1; i++){
+                if (!world.getBlockAt(block.getX(), block.getY() + i, block.getZ()).getType().isAir()){
+                    notGoodSpot = true;
+                    break;
                 }
             }
+
+            if (notGoodSpot) continue;
+
+            return block.getLocation().add(0.5, 1.0, 0.5);
         }
 
         return null;
@@ -441,6 +436,10 @@ public class SpawnerProcessor {
         updateProcessor.spawnerUpdateQueue.add(new SpawnerChunkUpdate(chunkId, operation));
     }
 
+    public void enumerateChunk(final @NotNull ChunkSnapshot chunkSnapshot, final @NotNull World world){
+        updateProcessor.spawnerUpdateQueue.add(new ChunkEnumeratorItem(chunkSnapshot, world));
+    }
+
     public boolean hasAlreadyProcessedChunk(final long chunkId){
         synchronized (UpdateProcessor.chunkLock){
             return updateProcessor.chunkMappings.containsKey(chunkId);
@@ -456,5 +455,9 @@ public class SpawnerProcessor {
         synchronized (lock_ActiveSpawners){
             return this.activeSpawners.containsKey(basicLocation);
         }
+    }
+
+    public void reevaluateSpawner(final @NotNull SpawnerInfo spawnerInfo){
+        updateProcessor.evaluateTrackingCriteriaForSpawner(spawnerInfo);
     }
 }

@@ -35,8 +35,8 @@ public class FileLoader {
         final SpawnerOptions defaults = new SpawnerOptions();
 
         final SpawnerOptions spawnerOptions = parseSpawnerOptions(settings, defaults);
-        main.wgRegionOptions = parseConfigRegions(settings.get("worldguard-regions"), defaults, true);
-        main.namedSpawnerOptions = parseConfigRegions(settings.get("named-spawners"), defaults, false);
+        main.wgRegionOptions = parseConfigRegions(settings.get("worldguard-regions"), spawnerOptions, true);
+        main.namedSpawnerOptions = parseConfigRegions(settings.get("named-spawners"), spawnerOptions, false);
         main.spawnerOptions = spawnerOptions;
     }
 
@@ -53,7 +53,7 @@ public class FileLoader {
         spawnerOptions.spawnRange = cs.getInt("spawn-range", defaults.spawnRange);
         spawnerOptions.minSpawnDelay = cs.getInt("min-spawn-delay", defaults.minSpawnDelay);
         spawnerOptions.maxSpawnDelay = cs.getInt("max-spawn-delay", defaults.maxSpawnDelay);
-        spawnerOptions.playerRequiredRange = cs.getDouble("player-required-range", defaults.playerRequiredRange) * 16.0;
+        spawnerOptions.setPlayerRequiredRange(cs.getDouble("player-required-range", defaults.getPlayerRequiredRange()));
         spawnerOptions.delay = cs.getInt("spawner-delay", defaults.delay);
         spawnerOptions.allowAirSpawning = cs.getBoolean("allow-air-spawning");
         spawnerOptions.doImmediateSpawn = cs.getBoolean("immediate-spawn");

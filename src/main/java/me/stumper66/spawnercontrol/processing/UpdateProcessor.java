@@ -5,11 +5,19 @@ import me.stumper66.spawnercontrol.SpawnerControl;
 import me.stumper66.spawnercontrol.SpawnerInfo;
 import me.stumper66.spawnercontrol.Utils;
 import me.stumper66.spawnercontrol.WorldGuardManager;
+import org.bukkit.ChunkSnapshot;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -23,12 +31,14 @@ public class UpdateProcessor {
         this.allSpawners = new HashMap<>();
         this.chunkMappings = new HashMap<>();
         this.worldMappings = new HashMap<>();
+        this.blocksToProcess = new LinkedList<>();
     }
 
     private final SpawnerControl main;
     final @NotNull Map<BasicLocation, CreatureSpawner> allSpawners;
     final @NotNull Map<Long, Set<BasicLocation>> chunkMappings;
     final @NotNull Map<String, Set<BasicLocation>> worldMappings;
+    final @NotNull List<BasicLocation> blocksToProcess;
     private final SpawnerProcessor sp;
     final @NotNull Queue<SpawnerUpdateInterface> spawnerUpdateQueue;
     private boolean recheckCriteria;
@@ -40,11 +50,15 @@ public class UpdateProcessor {
         while (true){
             final SpawnerUpdateInterface itemInterface = this.spawnerUpdateQueue.poll();
 
-            if (itemInterface == null) return;
+            if (itemInterface == null) break;
 
             switch (itemInterface.getOperation()){
                 case REMOVE:
                     removeSpawner((SpawnerUpdateItem) itemInterface);
+                    break;
+                case CHUNK_ENUMERATION:
+                    final ChunkEnumeratorItem chunkEnumeratorItem = (ChunkEnumeratorItem) itemInterface;
+                    processChunkEnumeration(chunkEnumeratorItem.chunkSnapshot, chunkEnumeratorItem.world);
                     break;
                 case CHUNK_UNLOADED:
                 case CHUNK_REFRESH:
@@ -58,6 +72,8 @@ public class UpdateProcessor {
                     break;
             }
         }
+
+        processPendingBlocks();
     }
 
     private void processSpawnerRename(final @NotNull SpawnerUpdateItem item){
@@ -78,6 +94,54 @@ public class UpdateProcessor {
             this.chunkMappings.get(item.cs.getLocation().getChunk().getChunkKey()).remove(item.basicLocation);
         if (this.worldMappings.containsKey(item.cs.getLocation().getWorld().getName()))
             this.worldMappings.get(item.cs.getLocation().getWorld().getName()).remove(item.basicLocation);
+    }
+
+    private void processChunkEnumeration(final @NotNull ChunkSnapshot chunk, final @NotNull World world){
+        final int yMin = world.getMinHeight();
+
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                final int highestY = chunk.getHighestBlockYAt(x, z);
+                for (int y = yMin; y <= highestY; y++) {
+                    if (chunk.getBlockType(x, y, z) != Material.SPAWNER) continue;
+
+                    final Location location = new Location(world, chunk.getX() * 16 + x, y, chunk.getZ() * 16 + z);
+                    blocksToProcess.add(new BasicLocation(location));
+                }
+            }
+        }
+    }
+
+    private void processPendingBlocks(){
+        if (blocksToProcess.isEmpty())
+            return;
+
+        final BukkitRunnable runnable = new BukkitRunnable() {
+            @Override
+            public void run() {
+                processPendingBlocks_NonAsync();
+            }
+        };
+
+        runnable.runTask(main);
+    }
+
+    private void processPendingBlocks_NonAsync(){
+        for (final BasicLocation basicLocation : blocksToProcess){
+            final Location l = basicLocation.getLocation();
+            final Block block = basicLocation.getLocation().getWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+            if (!(block.getState() instanceof CreatureSpawner))
+                continue;
+
+            final CreatureSpawner cs = (CreatureSpawner) block.getState();
+
+            if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.CHUNK_LOAD))
+                Utils.logger.info("ChunkLoadEvent: found spawner " + Utils.showSpawnerLocation(cs));
+            this.allSpawners.put(basicLocation, cs);
+            evaluateTrackingCriteriaForSpawner(cs, basicLocation);
+        }
+
+        blocksToProcess.clear();
     }
 
     private void processChunk(final @NotNull SpawnerChunkUpdate spawnerChunkUpdate){
@@ -127,16 +191,27 @@ public class UpdateProcessor {
         if (info == null)
             info = new SpawnerInfo(cs, sp.options);
 
+        evaluateTrackingCriteriaForSpawner(info);
+    }
+
+    void evaluateTrackingCriteriaForSpawner(final @NotNull SpawnerInfo info){
+        final CreatureSpawner cs = info.getCs();
         info.isChunkLoaded = cs.getLocation().isChunkLoaded();
 
         if (main.namedSpawnerOptions != null) {
             final String spawnerCustomName = info.getSpawnerCustomName(main);
 
-            if (spawnerCustomName != null && main.namedSpawnerOptions.containsKey(spawnerCustomName))
+            if (spawnerCustomName != null && main.namedSpawnerOptions.containsKey(spawnerCustomName)) {
                 info.options = main.namedSpawnerOptions.get(spawnerCustomName);
-            else
+                info.namedSpawnerOptions = info.options;
+            }
+            else {
                 info.options = main.spawnerOptions;
+                info.namedSpawnerOptions = null;
+            }
         }
+        else
+            info.namedSpawnerOptions = null;
 
         if (sp.hasWorldGuard)
             WorldGuardManager.updateWorlguardOptionsForSpawner(main, info);
@@ -149,8 +224,6 @@ public class UpdateProcessor {
 
         final Set<BasicLocation> spawnersInWorld = this.worldMappings.computeIfAbsent(cs.getLocation().getWorld().getName(), k -> new HashSet<>());
         spawnersInWorld.add(info.getBasicLocation());
-
-        final String name = info.getSpawnerCustomName(main);
 
         if (info.options.allowedEntityTypes.isEnabledInList(cs.getSpawnedType())) {
             if (info.isChunkLoaded && !sp.activeSpawners.containsKey(info.getBasicLocation())) {

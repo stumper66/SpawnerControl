@@ -48,7 +48,7 @@ public class DebugCommand {
             case "debug_types":
                 showOrUpdateDebugTypes(sender, args);
                 break;
-            case "entity_types":
+            case "mob_types":
                 showOrUpdateEntityTypes(sender, args);
                 break;
             case "spawner_names":
@@ -61,7 +61,7 @@ public class DebugCommand {
     }
 
     private void showSyntax(final @NotNull CommandSender sender){
-        main.sendPrefixedMessage(sender, "Available debug options: &bdisable&7, &benable&7, &bstatus&7, &bdebug_types&7, &bentity_types&7, &bspawner_names&7 and &bregion_names&7.");
+        main.sendPrefixedMessage(sender, "Available debug options: &bdisable&7, &benable&7, &bstatus&7, &bdebug_types&7, &bmob_types&7, &bspawner_names&7 and &bregion_names&7.");
     }
 
     private void showStatus(final @NotNull CommandSender sender) {
@@ -86,7 +86,7 @@ public class DebugCommand {
         else
             sb.append(di.enabledRegionNames);
 
-        sb.append("&r\n&7Entity types: &b");
+        sb.append("&r\n&7Mob types: &b");
         if (di.allEntityTypesEnabled)
             sb.append("(all)");
         else
@@ -148,7 +148,7 @@ public class DebugCommand {
 
     private void showOrUpdateEntityTypes(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args){
         if (args.length == 2){
-            showEnabledDebugTypes(sender);
+            showEnabledMobTypes(sender);
             return;
         }
 
@@ -162,6 +162,7 @@ public class DebugCommand {
                 EntityType type;
                 try {
                     type = EntityType.valueOf(args[i].toUpperCase());
+                    di.allEntityTypesEnabled = false;
                 } catch (Exception ignored) {
                     main.sendPrefixedMessage(sender, "Invalid entity type '&b" + args[i] + "&7'.");
                     continue;
@@ -169,13 +170,12 @@ public class DebugCommand {
 
                 di.enabledEntityTypes.add(type);
             }
-            main.sendPrefixedMessage(sender, "The enabled entity type list has been updated.");
+            main.sendPrefixedMessage(sender, "The enabled mob type list has been updated.");
         }
         else if ("remove".equalsIgnoreCase(args[2])){
             for (int i = 3; i < args.length; i++) {
                 if ("*".equals(args[i])){
                     di.enabledEntityTypes.clear();
-                    di.allEntityTypesEnabled = false;
                     break;
                 }
                 EntityType type;
@@ -186,8 +186,9 @@ public class DebugCommand {
                 }
 
                 di.enabledEntityTypes.remove(type);
+                di.allEntityTypesEnabled = di.enabledEntityTypes.isEmpty();
             }
-            main.sendPrefixedMessage(sender, "The enabled entity type list has been updated.");
+            main.sendPrefixedMessage(sender, "The enabled mob type list has been updated.");
         }
         else
             main.sendPrefixedMessage(sender, "Invalid option '&b" + args[2] + "&7'.");
@@ -257,6 +258,26 @@ public class DebugCommand {
         for (int i = 0; i < DebugType.values().length; i++){
             if (i > 0) sb.append(", ");
             sb.append(DebugType.values()[i].toString().toLowerCase());
+        }
+
+        sender.sendMessage(MessageUtils.colorizeAll(sb.toString()));
+    }
+
+    private void showEnabledMobTypes(final @NotNull CommandSender sender) {
+        main.sendPrefixedMessage(sender, "Enabled mob types status:");
+
+        final StringBuilder sb = new StringBuilder();
+        if (di.enabledEntityTypes.isEmpty())
+            sb.append("&7No mob types are currently enabled.");
+        else {
+            sb.append("&7Enabled types: &b");
+            int count = 0;
+            for (final EntityType type : di.enabledEntityTypes){
+                if (count > 0) sb.append("&7, &b");
+
+                sb.append(type.toString().toLowerCase());
+                count++;
+            }
         }
 
         sender.sendMessage(MessageUtils.colorizeAll(sb.toString()));

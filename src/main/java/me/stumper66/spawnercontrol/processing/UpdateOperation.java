@@ -6,5 +6,6 @@ public enum UpdateOperation {
     UPDATE,
     CHUNK_UNLOADED,
     CHUNK_REFRESH,
+    CHUNK_ENUMERATION,
     CUSTOM_NAME_CHANGE
 }

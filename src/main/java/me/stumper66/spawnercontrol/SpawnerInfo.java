@@ -19,6 +19,7 @@ public class SpawnerInfo {
 
     public int delayTimeLeft;
     public int immediateSpawnResetTimeLeft;
+    public @Nullable SpawnerOptions namedSpawnerOptions;
     public @Nullable SpawnerOptions options;
     public @Nullable String matchedWGRegion;
     public boolean isChunkLoaded;

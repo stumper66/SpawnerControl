@@ -9,11 +9,13 @@ import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import com.sk89q.worldguard.protection.regions.RegionContainer;
 import me.stumper66.spawnercontrol.processing.BasicLocation;
 import org.bukkit.Location;
+import org.bukkit.block.CreatureSpawner;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class WorldGuardManager {
     @NotNull
@@ -40,30 +42,48 @@ public class WorldGuardManager {
         return wg_Regions;
     }
 
-    public static void updateWorlguardOptionsForTrackedSpawners(final @NotNull SpawnerControl main, final @NotNull Map<BasicLocation, SpawnerInfo> spawnerTracking){
+    public static void updateWorlguardOptionsForTrackedSpawners(final @NotNull SpawnerControl main, final @NotNull Map<BasicLocation, CreatureSpawner> allSpawners,
+                                                                final @NotNull Map<BasicLocation, SpawnerInfo> spawnerTracking){
         final boolean hasDefinedRegions = main.wgRegionOptions != null && !main.wgRegionOptions.isEmpty();
 
-        for (final BasicLocation location : spawnerTracking.keySet()){
-            final SpawnerInfo sInfo = spawnerTracking.get(location);
+        for (final BasicLocation location : allSpawners.keySet()){
+            final CreatureSpawner cs = allSpawners.get(location);
+            if (!cs.getLocation().getChunk().isLoaded()) continue;
+
+            SpawnerInfo sInfo = spawnerTracking.get(location);
 
             if (!hasDefinedRegions){
-                sInfo.options = main.spawnerOptions;
+                if (sInfo != null) sInfo.options = main.spawnerOptions;
                 continue;
             }
 
-            updateWorlguardOptionsForSpawner(main, sInfo);
+            if (sInfo == null)
+                sInfo = new SpawnerInfo(cs, main.spawnerOptions);
+
+            if (updateWorlguardOptionsForSpawner(main, sInfo))
+                main.spawnerProcessor.reevaluateSpawner(sInfo);
         }
     }
 
-    public static void updateWorlguardOptionsForSpawner(final @NotNull SpawnerControl main, final @NotNull SpawnerInfo spawnerInfo){
+    public static boolean updateWorlguardOptionsForSpawner(final @NotNull SpawnerControl main, final @NotNull SpawnerInfo spawnerInfo){
+        final SpawnerOptions previouslyUsedOptions = spawnerInfo.options;
+        final String previouslyMatchedRegion = spawnerInfo.matchedWGRegion;
+
+        spawnerInfo.options = spawnerInfo.namedSpawnerOptions != null ?
+                spawnerInfo.namedSpawnerOptions : main.spawnerOptions;
         spawnerInfo.matchedWGRegion = null;
 
-        for (final String foundRegion : getWorldGuardRegionsForLocation(spawnerInfo.getCs().getLocation())){
-            if (!main.wgRegionOptions.containsKey(foundRegion)) continue;
+        if (main.wgRegionOptions != null) {
+            for (final String foundRegion : getWorldGuardRegionsForLocation(spawnerInfo.getCs().getLocation())) {
+                if (!main.wgRegionOptions.containsKey(foundRegion)) continue;
 
-            spawnerInfo.options = main.wgRegionOptions.get(foundRegion);
-            spawnerInfo.matchedWGRegion = foundRegion;
-            return;
+                spawnerInfo.options = main.wgRegionOptions.get(foundRegion);
+                spawnerInfo.matchedWGRegion = foundRegion;
+                break;
+            }
         }
+
+        return previouslyUsedOptions != spawnerInfo.options ||
+                !Objects.equals(previouslyMatchedRegion, spawnerInfo.matchedWGRegion);
     }
 }

@@ -4,6 +4,7 @@ import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 public class SpawnerOptions {
     public SpawnerOptions(){
@@ -26,6 +27,8 @@ public class SpawnerOptions {
         this.allowedBlockLightLevel_Max = 15;
     }
 
+    private @DoNotShow double effectivePlayerRequiredRange;
+    private double playerRequiredRange;
     public int minSpawnDelay;
     public int maxSpawnDelay;
     public int maxNearbyEntities;
@@ -42,18 +45,32 @@ public class SpawnerOptions {
     public int immediateSpawnResetPeriod;
     public Integer slimeSizeMin;
     public Integer slimeSizeMax;
-    public double playerRequiredRange;
     public boolean allowAirSpawning;
     public boolean doImmediateSpawn;
     public String customNameMatch;
     public @NotNull CachedModalList<String> allowedWorlds;
     public @NotNull CachedModalList<EntityType> allowedEntityTypes;
 
+    public void setPlayerRequiredRange(final double playerRequiredRange){
+        this.playerRequiredRange = playerRequiredRange;
+        this.effectivePlayerRequiredRange = playerRequiredRange * 16.0;
+    }
+
+    public double getPlayerRequiredRange(){
+        return this.playerRequiredRange;
+    }
+
+    public double getEffectivePlayerRequiredRange(){
+        return this.effectivePlayerRequiredRange;
+    }
+
     public String toString(){
         final StringBuilder sb = new StringBuilder();
 
         try {
             for (final Field f : this.getClass().getDeclaredFields()) {
+                if (f.isAnnotationPresent(DoNotShow.class)) continue;
+                if (Modifier.isPrivate(f.getModifiers())) f.setAccessible(true);
                 if (f.get(this) == null) continue;
                 if (sb.length() > 0) sb.append(", ");
                 sb.append(f.getName());
