@@ -14,6 +14,7 @@ import org.bukkit.block.CreatureSpawner;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -21,7 +22,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class UpdateProcessor {
     public UpdateProcessor(final @NotNull SpawnerProcessor sp){
@@ -74,6 +79,7 @@ public class UpdateProcessor {
         }
 
         processPendingBlocks();
+        sp.updateActiveSpawnerList();
     }
 
     private void processSpawnerRename(final @NotNull SpawnerUpdateItem item){
@@ -89,6 +95,7 @@ public class UpdateProcessor {
     private void removeSpawner(final @NotNull SpawnerUpdateItem item){
         synchronized (SpawnerProcessor.lock_ActiveSpawners) {
             sp.activeSpawners.remove(item.basicLocation);
+            sp.activeSpawnersNeedsUpdating = true;
         }
         if (this.chunkMappings.containsKey(item.cs.getLocation().getChunk().getChunkKey()))
             this.chunkMappings.get(item.cs.getLocation().getChunk().getChunkKey()).remove(item.basicLocation);
@@ -116,14 +123,28 @@ public class UpdateProcessor {
         if (blocksToProcess.isEmpty())
             return;
 
+        processPendingBlocks_Future();
+    }
+
+    private void processPendingBlocks_Future(){
+        final CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
+
         final BukkitRunnable runnable = new BukkitRunnable() {
             @Override
             public void run() {
                 processPendingBlocks_NonAsync();
+                completableFuture.complete(true);
             }
         };
 
         runnable.runTask(main);
+
+        try {
+            completableFuture.get(100L, TimeUnit.MILLISECONDS);
+        }
+        catch (InterruptedException | ConcurrentModificationException | ExecutionException | TimeoutException e){
+            e.printStackTrace();
+        }
     }
 
     private void processPendingBlocks_NonAsync(){

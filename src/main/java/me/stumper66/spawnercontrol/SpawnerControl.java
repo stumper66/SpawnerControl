@@ -73,7 +73,7 @@ public class SpawnerControl extends JavaPlugin {
         this.mainTask = new BukkitRunnable() {
             @Override
             public void run() {
-                spawnerProcessor.processSpawners();
+                spawnerProcessor.startProcessing();
             }
         };
 

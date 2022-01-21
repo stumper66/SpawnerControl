@@ -43,14 +43,14 @@ public class WorldGuardManager {
     }
 
     public static void updateWorlguardOptionsForTrackedSpawners(final @NotNull SpawnerControl main, final @NotNull Map<BasicLocation, CreatureSpawner> allSpawners,
-                                                                final @NotNull Map<BasicLocation, SpawnerInfo> spawnerTracking){
+                                                                final @NotNull Map<BasicLocation, SpawnerInfo> activeSpawners){
         final boolean hasDefinedRegions = main.wgRegionOptions != null && !main.wgRegionOptions.isEmpty();
 
         for (final BasicLocation location : allSpawners.keySet()){
             final CreatureSpawner cs = allSpawners.get(location);
             if (!cs.getLocation().getChunk().isLoaded()) continue;
 
-            SpawnerInfo sInfo = spawnerTracking.get(location);
+            SpawnerInfo sInfo = activeSpawners.get(location);
 
             if (!hasDefinedRegions){
                 if (sInfo != null) sInfo.options = main.spawnerOptions;

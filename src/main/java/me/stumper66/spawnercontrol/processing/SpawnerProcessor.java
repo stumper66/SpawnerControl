@@ -49,6 +49,7 @@ public class SpawnerProcessor {
     public SpawnerProcessor(final SpawnerControl main) {
         this.main = main;
         this.activeSpawners = new HashMap<>();
+        this.activeSpawnerList = new HashSet<>();
         this.options = new SpawnerOptions();
         this.lastWGCheckTicks = -1;
         this.hasWorldGuard = SpawnerControl.isWorldGuardInstalled();
@@ -59,7 +60,9 @@ public class SpawnerProcessor {
 
     final SpawnerControl main;
     final @NotNull Map<BasicLocation, SpawnerInfo> activeSpawners;
+    private final Set<BasicLocation> activeSpawnerList;
     final boolean hasWorldGuard;
+    boolean activeSpawnersNeedsUpdating;
     @NotNull SpawnerOptions options;
     int lastWGCheckTicks;
     private final UpdateProcessor updateProcessor;
@@ -68,9 +71,22 @@ public class SpawnerProcessor {
     public final NamespacedKey spawnerCustomNameKey;
     public UUID currentSpawningEntityId;
     public final static Object lock_ActiveSpawners = new Object();
+    private boolean threadIsProcessing;
 
-    public void processSpawners() {
+    public void startProcessing() {
         if (!main.isEnabled) return;
+        if (threadIsProcessing) return;
+
+        try {
+            threadIsProcessing = true;
+            processSpawners();
+        }
+        finally {
+            threadIsProcessing = false;
+        }
+    }
+
+    private void processSpawners(){
         if (main.spawnerOptions != null)
             this.options = main.spawnerOptions;
 
@@ -80,7 +96,9 @@ public class SpawnerProcessor {
         if (hasWorldGuard && lastWGCheckTicks == -1 || lastWGCheckTicks >= 160){
             // updates roughly every 8 seconds
             this.lastWGCheckTicks = 0;
-            WorldGuardManager.updateWorlguardOptionsForTrackedSpawners(main, updateProcessor.allSpawners, this.activeSpawners);
+            final Map<BasicLocation, CreatureSpawner> allSpawnersCopy = new HashMap<>(updateProcessor.allSpawners.size());
+            allSpawnersCopy.putAll(updateProcessor.allSpawners);
+            WorldGuardManager.updateWorlguardOptionsForTrackedSpawners(main, allSpawnersCopy, this.activeSpawners);
         }
         else if (hasWorldGuard)
             this.lastWGCheckTicks += ticksPerCall;
@@ -120,10 +138,25 @@ public class SpawnerProcessor {
     }
 
     private void makeSureSpawnersStillExist(){
+        if (!invalidActiveSpawners.isEmpty()) this.activeSpawnersNeedsUpdating = true;
+
         for (final BasicLocation basicLocation : invalidActiveSpawners){
             activeSpawners.remove(basicLocation);
             updateProcessor.allSpawners.remove(basicLocation);
         }
+
+        updateActiveSpawnerList();
+    }
+
+    void updateActiveSpawnerList(){
+        if (!this.activeSpawnersNeedsUpdating) return;
+
+        synchronized (lock_ActiveSpawners){
+            this.activeSpawnerList.clear();
+            this.activeSpawnerList.addAll(this.activeSpawners.keySet());
+        }
+
+        this.activeSpawnersNeedsUpdating = false;
     }
 
     @NotNull
@@ -416,8 +449,10 @@ public class SpawnerProcessor {
         this.updateProcessor.configReloaded();
     }
 
-    public int getActiveSpawnersCount(){
-        return this.activeSpawners.size();
+    public int getActiveSpawnersCount() {
+        synchronized (lock_ActiveSpawners) {
+            return this.activeSpawnerList.size();
+        }
     }
 
     public void spawnerGotRenamed(final @NotNull CreatureSpawner cs, final @Nullable String oldName, final @Nullable String newName){
@@ -453,7 +488,7 @@ public class SpawnerProcessor {
     public boolean isSpawnerActive(final @NotNull CreatureSpawner cs){
         final BasicLocation basicLocation = new BasicLocation(cs.getLocation());
         synchronized (lock_ActiveSpawners){
-            return this.activeSpawners.containsKey(basicLocation);
+            return this.activeSpawnerList.contains(basicLocation);
         }
     }
 
