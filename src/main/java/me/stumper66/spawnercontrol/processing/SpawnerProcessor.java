@@ -56,12 +56,14 @@ public class SpawnerProcessor {
         this.spawnerCustomNameKey = new NamespacedKey(main, "spawnerCustomNameKey");
         this.updateProcessor = new UpdateProcessor(this);
         this.invalidActiveSpawners = new LinkedList<>();
+        this.isServerOneFifteen = VersionUtils.isOneFifteen();
     }
 
     final SpawnerControl main;
     final @NotNull Map<BasicLocation, SpawnerInfo> activeSpawners;
     private final Set<BasicLocation> activeSpawnerList;
     final boolean hasWorldGuard;
+    final boolean isServerOneFifteen;
     boolean activeSpawnersNeedsUpdating;
     @NotNull SpawnerOptions options;
     int lastWGCheckTicks;
@@ -341,12 +343,7 @@ public class SpawnerProcessor {
                         cs.getSpawnedType().name(), spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ()));
             }
 
-            // if you're running spigot then they will spawn in with default spawn reason
-            // if running paper they will spawn in with spawner spawn reason
-            final Entity entity = VersionUtils.isRunningPaper() ?
-                    cs.getWorld().spawnEntity(spawnLocation, cs.getSpawnedType(), CreatureSpawnEvent.SpawnReason.SPAWNER) :
-                    SpigotCompat.spawnEntity(spawnLocation, cs.getSpawnedType());
-
+            final Entity entity = spawnEntity(cs, spawnLocation);
             this.currentSpawningEntityId = entity.getUniqueId();
             Bukkit.getPluginManager().callEvent(new SpawnerSpawnEvent(entity, cs));
             this.currentSpawningEntityId = null;
@@ -370,6 +367,20 @@ public class SpawnerProcessor {
             similarEntityCount++;
             if (similarEntityCount >= info.options.maxNearbyEntities) break;
         }
+    }
+
+    @NotNull
+    private Entity spawnEntity(final @NotNull CreatureSpawner cs, final @NotNull Location spawnLocation){
+        // if you're running spigot then they will spawn in with default spawn reason
+        // if running paper they will spawn in with spawner spawn reason
+
+        if (VersionUtils.isRunningPaper()){
+            return this.isServerOneFifteen ?
+                    cs.getWorld().spawnEntity(spawnLocation, cs.getSpawnedType(), CreatureSpawnEvent.SpawnReason.SPAWNER) :
+                    cs.getWorld().spawnEntity(spawnLocation, cs.getSpawnedType());
+        }
+
+        return SpigotCompat.spawnEntity(spawnLocation, cs.getSpawnedType());
     }
 
     @NotNull

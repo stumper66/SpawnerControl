@@ -1,6 +1,7 @@
 package me.stumper66.spawnercontrol;
 
 import me.lokka30.microlib.messaging.MessageUtils;
+import me.lokka30.microlib.other.VersionUtils;
 import me.stumper66.spawnercontrol.command.CommandProcessor;
 import me.stumper66.spawnercontrol.listener.BlockBreakListener;
 import me.stumper66.spawnercontrol.listener.BlockPlaceListener;
@@ -23,6 +24,7 @@ public class SpawnerControl extends JavaPlugin {
 
     public YamlConfiguration settings;
     public boolean isEnabled;
+    public boolean supportsVariableMinHeight;
     public SpawnerProcessor spawnerProcessor;
     public Map<String, SpawnerOptions> wgRegionOptions;
     public Map<String, SpawnerOptions> namedSpawnerOptions;
@@ -34,6 +36,7 @@ public class SpawnerControl extends JavaPlugin {
     public void onEnable() {
         spawnerProcessor = new SpawnerProcessor(this);
         debugInfo = new DebugInfo();
+        this.supportsVariableMinHeight = VersionUtils.isOneSixteen();
 
         registerCommands();
         loadConfig(false);

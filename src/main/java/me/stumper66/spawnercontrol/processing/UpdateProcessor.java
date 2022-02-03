@@ -104,7 +104,8 @@ public class UpdateProcessor {
     }
 
     private void processChunkEnumeration(final @NotNull ChunkSnapshot chunk, final @NotNull World world){
-        final int yMin = world.getMinHeight();
+        final int yMin = main.supportsVariableMinHeight ?
+                world.getMinHeight() : 0;
 
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
@@ -140,7 +141,7 @@ public class UpdateProcessor {
         runnable.runTask(main);
 
         try {
-            completableFuture.get(100L, TimeUnit.MILLISECONDS);
+            completableFuture.get(500L, TimeUnit.MILLISECONDS);
         }
         catch (InterruptedException | ConcurrentModificationException | ExecutionException | TimeoutException e){
             e.printStackTrace();
