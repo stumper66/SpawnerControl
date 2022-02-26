@@ -6,6 +6,7 @@ api-version: '1.13'
 author: 'stumper66'
 description: '${project.description}'
 website: 'https://github.com/stumper66/SlimeSpawners'
+load: POSTWORLD
 
 commands:
   spawnercontrol:

@@ -53,7 +53,13 @@ public class WorldGuardManager {
             SpawnerInfo sInfo = activeSpawners.get(location);
 
             if (!hasDefinedRegions){
-                if (sInfo != null) sInfo.options = main.spawnerOptions;
+                if (sInfo != null) {
+                    final String customName = sInfo.getSpawnerCustomName(main);
+                    if (customName != null && main.namedSpawnerOptions != null && main.namedSpawnerOptions.containsKey(sInfo.getSpawnerCustomName(main)))
+                        sInfo.options = main.namedSpawnerOptions.get(customName);
+                    else
+                        sInfo.options = main.spawnerOptions;
+                }
                 continue;
             }
 

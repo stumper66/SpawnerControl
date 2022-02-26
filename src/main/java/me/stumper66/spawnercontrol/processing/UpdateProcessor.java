@@ -152,7 +152,7 @@ public class UpdateProcessor {
         for (final BasicLocation basicLocation : blocksToProcess){
             final Location l = basicLocation.getLocation();
             final Block block = basicLocation.getLocation().getWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
-            if (!(block.getState() instanceof CreatureSpawner))
+            if (block.getType() != Material.SPAWNER)
                 continue;
 
             final CreatureSpawner cs = (CreatureSpawner) block.getState();
