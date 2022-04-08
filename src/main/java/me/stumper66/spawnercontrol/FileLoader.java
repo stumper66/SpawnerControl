@@ -35,6 +35,8 @@ public class FileLoader {
         final SpawnerOptions defaults = new SpawnerOptions();
 
         final SpawnerOptions spawnerOptions = parseSpawnerOptions(settings, defaults);
+        spawnerOptions.isDefaultOptions = true;
+
         main.wgRegionOptions = parseConfigRegions(settings.get("worldguard-regions"), spawnerOptions, true);
         main.namedSpawnerOptions = parseConfigRegions(settings.get("named-spawners"), spawnerOptions, false);
         main.spawnerOptions = spawnerOptions;
@@ -58,6 +60,11 @@ public class FileLoader {
         spawnerOptions.allowAirSpawning = cs.getBoolean("allow-air-spawning");
         spawnerOptions.doImmediateSpawn = cs.getBoolean("immediate-spawn");
         spawnerOptions.immediateSpawnResetPeriod = cs.getInt("immediate-spawn-reset-period");
+        spawnerOptions.commandToRun = cs.getString("command-to-run");
+        if (spawnerOptions.commandToRun != null && spawnerOptions.commandToRun.length() == 0)
+            spawnerOptions.commandToRun = null;
+        spawnerOptions.doMobSpawn = cs.getBoolean("also-spawn-mob", defaults.doMobSpawn);
+        spawnerOptions.doSpawnerParticles = cs.getBoolean("create-particles-on-spawner", defaults.doSpawnerParticles);
 
         Integer[] numberRange = getAmountRangeFromString(cs.getString("spawn-count"));
         if (numberRange != null) {

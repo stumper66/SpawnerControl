@@ -76,6 +76,10 @@ immediate-spawn: false
 # if set to 0, the immiate-spawn will only happen once, otherwise it will reset after the specified number of ticks
 immediate-spawn-reset-period: 0
 
+command-to-run: ''
+also-spawn-mob: true
+create-particles-on-spawner: true
+
 # Unused Settings
 
 # Establish Slime-Specific modifications

@@ -25,6 +25,7 @@ public class SpawnerOptions {
         this.allowedSkyLightLevel_Max = 15;
         this.allowedBlockLightLevel_Min = 0;
         this.allowedBlockLightLevel_Max = 15;
+        this.doMobSpawn = true;
     }
 
     private @DoNotShow double effectivePlayerRequiredRange;
@@ -47,7 +48,11 @@ public class SpawnerOptions {
     public Integer slimeSizeMax;
     public boolean allowAirSpawning;
     public boolean doImmediateSpawn;
+    public boolean doMobSpawn;
+    public boolean doSpawnerParticles;
+    public @DoNotShow boolean isDefaultOptions;
     public String customNameMatch;
+    public String commandToRun;
     public @NotNull CachedModalList<String> allowedWorlds;
     public @NotNull CachedModalList<EntityType> allowedEntityTypes;
 

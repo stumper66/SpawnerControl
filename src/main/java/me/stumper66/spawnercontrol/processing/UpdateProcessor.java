@@ -201,6 +201,10 @@ public class UpdateProcessor {
     private void recheckSpawnerCriteria(){
         this.recheckCriteria = false;
 
+        for (final SpawnerInfo info : main.spawnerProcessor.getMonitoredSpawners())
+            if (info.options != null && info.options.isDefaultOptions)
+                info.options = main.spawnerOptions;
+
         for (final BasicLocation basicLocation : this.allSpawners.keySet()){
             final CreatureSpawner cs = this.allSpawners.get(basicLocation);
             if (main.spawnerOptions.allowedWorlds.isEnabledInList(cs.getWorld().getName()))

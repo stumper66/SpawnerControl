@@ -338,17 +338,35 @@ public class SpawnerProcessor {
                 continue;
             }
 
+            final String command = info.options.commandToRun != null ?
+                    populateCommand(info, spawnLocation) : null;
+
             if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_SUCCESS, info)) {
-                Utils.logger.info(String.format("spawning %s at %s, %s, %s",
-                        cs.getSpawnedType().name(), spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ()));
+                if (command != null)
+                    Utils.logger.info("executing command: " + command);
+                if (info.options.doMobSpawn) {
+                    Utils.logger.info(String.format("spawning %s at %s, %s, %s",
+                            cs.getSpawnedType().name(), spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ()));
+                }
             }
 
-            final Entity entity = spawnEntity(cs, spawnLocation);
-            this.currentSpawningEntityId = entity.getUniqueId();
-            Bukkit.getPluginManager().callEvent(new SpawnerSpawnEvent(entity, cs));
+            if (command != null)
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+
+            Entity entity = null;
+            if (info.options.doMobSpawn) {
+                entity = spawnEntity(cs, spawnLocation);
+                this.currentSpawningEntityId = entity.getUniqueId();
+                Bukkit.getPluginManager().callEvent(new SpawnerSpawnEvent(entity, cs));
+            }
+
             this.currentSpawningEntityId = null;
 
-            makeParticles(entity.getLocation());
+            if (info.options.doSpawnerParticles) {
+                final Location useLocation = entity != null ?
+                        entity.getLocation() : spawnLocation;
+                makeParticles(useLocation);
+            }
 
             if (entity instanceof Slime && (info.options.slimeSizeMin != null || info.options.slimeSizeMax != null)) {
                 final Slime slime = (Slime) entity;
@@ -366,7 +384,23 @@ public class SpawnerProcessor {
 
             similarEntityCount++;
             if (similarEntityCount >= info.options.maxNearbyEntities) break;
-        }
+        } // next spawn count
+    }
+
+    @NotNull
+    private String populateCommand(final @NotNull SpawnerInfo info, final @NotNull Location spawnLocation){
+        if (info.options == null) return "";
+
+        final String locationString = String.format("%s %s %s", spawnLocation.getX(), spawnLocation.getY(), spawnLocation.getZ());
+
+        return info.options.commandToRun
+                .replace("%world%", spawnLocation.getWorld().getName())
+                .replace("%location%", locationString)
+                .replace("%x%", spawnLocation.getX() + "")
+                .replace("%y%", spawnLocation.getY() + "")
+                .replace("%z%", spawnLocation.getZ() + "")
+                .replace("%entity%", info.getCs().getSpawnedType().toString().toLowerCase()
+        );
     }
 
     @NotNull
