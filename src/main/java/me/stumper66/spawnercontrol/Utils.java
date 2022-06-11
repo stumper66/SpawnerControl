@@ -3,9 +3,15 @@ package me.stumper66.spawnercontrol;
 import me.lokka30.microlib.messaging.MessageUtils;
 import me.lokka30.microlib.messaging.MicroLogger;
 import org.apache.commons.lang.WordUtils;
+import org.bukkit.Chunk;
+import org.bukkit.World;
 import org.bukkit.block.CreatureSpawner;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Collection;
+import java.util.HashSet;
 
 @SuppressWarnings("unused")
 public class Utils {
@@ -41,5 +47,25 @@ public class Utils {
         } catch (final NumberFormatException ex) {
             return false;
         }
+    }
+
+    @NotNull
+    public static Collection<Chunk> getChunksAroundPlayer(final @NotNull Player player) {
+        // https://www.spigotmc.org/threads/get-chunks-around-players-chunk.73189/
+        final int[] offset = { -1, 0, 1 };
+
+        final World world = player.getWorld();
+        final int baseX = player.getLocation().getChunk().getX();
+        final int baseZ = player.getLocation().getChunk().getZ();
+
+        final Collection<Chunk> chunksAroundPlayer = new HashSet<>();
+        for (final int x : offset) {
+            for (final int z : offset) {
+                final Chunk chunk = world.getChunkAt(baseX + x, baseZ + z);
+                chunksAroundPlayer.add(chunk);
+            }
+        }
+
+        return chunksAroundPlayer;
     }
 }

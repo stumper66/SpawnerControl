@@ -65,6 +65,7 @@ public class FileLoader {
             spawnerOptions.commandToRun = null;
         spawnerOptions.doMobSpawn = cs.getBoolean("also-spawn-mob", defaults.doMobSpawn);
         spawnerOptions.doSpawnerParticles = cs.getBoolean("create-particles-on-spawner", defaults.doSpawnerParticles);
+        spawnerOptions.nbtData = cs.getString("nbt-data", defaults.nbtData);
 
         Integer[] numberRange = getAmountRangeFromString(cs.getString("spawn-count"));
         if (numberRange != null) {

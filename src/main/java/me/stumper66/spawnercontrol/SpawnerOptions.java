@@ -53,6 +53,7 @@ public class SpawnerOptions {
     public @DoNotShow boolean isDefaultOptions;
     public String customNameMatch;
     public String commandToRun;
+    public String nbtData;
     public @NotNull CachedModalList<String> allowedWorlds;
     public @NotNull CachedModalList<EntityType> allowedEntityTypes;
 

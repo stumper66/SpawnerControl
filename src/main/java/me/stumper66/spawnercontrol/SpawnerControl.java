@@ -7,6 +7,7 @@ import me.stumper66.spawnercontrol.listener.BlockBreakListener;
 import me.stumper66.spawnercontrol.listener.BlockPlaceListener;
 import me.stumper66.spawnercontrol.listener.ChunkLoadListener;
 import me.stumper66.spawnercontrol.listener.PlayerInteractEventListener;
+import me.stumper66.spawnercontrol.listener.PlayerJoinListener;
 import me.stumper66.spawnercontrol.listener.SpawnerSpawnListener;
 import me.stumper66.spawnercontrol.processing.SpawnerProcessor;
 import org.bukkit.Bukkit;
@@ -68,7 +69,8 @@ public class SpawnerControl extends JavaPlugin {
                 new BlockPlaceListener(this),
                 new ChunkLoadListener(this),
                 new PlayerInteractEventListener(this),
-                new SpawnerSpawnListener(this)
+                new SpawnerSpawnListener(this),
+                new PlayerJoinListener((this))
         ).forEach(listener -> Bukkit.getPluginManager().registerEvents(listener, this));
     }
 

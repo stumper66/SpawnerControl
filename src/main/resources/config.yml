@@ -70,21 +70,25 @@ spawner-delay: 20
 # When set to 'false', mobs will only attempt to spawn on solid ground, rather than in the air.
 allow-air-spawning: false
 
-# if set to true, the first time a spawner is activated by a player, it triggers a mob spawn immediately
+# If set to true, the first time a spawner is activated by a player, it triggers a mob spawn immediately
 immediate-spawn: false
 
-# if set to 0, the immiate-spawn will only happen once, otherwise it will reset after the specified number of ticks
+# If set to 0, the immiate-spawn will only happen once, otherwise it will reset after the specified number of ticks
 immediate-spawn-reset-period: 0
 
 command-to-run: ''
 also-spawn-mob: true
 create-particles-on-spawner: true
 
+
+# Optional and requires NBTAPI - https://www.spigotmc.org/resources/nbt-api.7939/
+nbt-data: ''
+
 # Unused Settings
 
 # Establish Slime-Specific modifications
-#slime-size-min: 1
-#slime-size-max: 4
+# slime-size-min: 1
+# slime-size-max: 4
 
 
 # Establish WorldGuard Region Exceptions

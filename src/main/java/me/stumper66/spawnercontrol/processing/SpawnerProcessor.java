@@ -19,6 +19,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -57,6 +58,7 @@ public class SpawnerProcessor {
         this.updateProcessor = new UpdateProcessor(this);
         this.invalidActiveSpawners = new LinkedList<>();
         this.isServerOneFifteen = VersionUtils.isOneFifteen();
+        this.isNbtApiInstalled = NbtManager.isNbtApiInstalled();
     }
 
     final SpawnerControl main;
@@ -74,6 +76,7 @@ public class SpawnerProcessor {
     public UUID currentSpawningEntityId;
     public final static Object lock_ActiveSpawners = new Object();
     private boolean threadIsProcessing;
+    private final boolean isNbtApiInstalled;
 
     public void startProcessing() {
         if (!main.isEnabled) return;
@@ -356,6 +359,7 @@ public class SpawnerProcessor {
             Entity entity = null;
             if (info.options.doMobSpawn) {
                 entity = spawnEntity(cs, spawnLocation);
+                applyNbtData(entity, info);
                 this.currentSpawningEntityId = entity.getUniqueId();
                 Bukkit.getPluginManager().callEvent(new SpawnerSpawnEvent(entity, cs));
             }
@@ -385,6 +389,14 @@ public class SpawnerProcessor {
             similarEntityCount++;
             if (similarEntityCount >= info.options.maxNearbyEntities) break;
         } // next spawn count
+    }
+
+    private void applyNbtData(final @NotNull Entity entity, final @NotNull SpawnerInfo info){
+        if (!(entity instanceof LivingEntity)) return;
+        if (!this.isNbtApiInstalled) return;
+        if (info.options == null || info.options.nbtData == null || info.options.nbtData.isEmpty()) return;
+
+        NbtManager.applyNBT_Data_Mob((LivingEntity) entity, info.options.nbtData, main.debugInfo);
     }
 
     @NotNull

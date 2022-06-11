@@ -7,7 +7,6 @@ import me.stumper66.spawnercontrol.Utils;
 import me.stumper66.spawnercontrol.processing.UpdateOperation;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.CreatureSpawner;
@@ -22,7 +21,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 
 public class CommandProcessor implements CommandExecutor, TabCompleter  {
@@ -83,7 +81,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
         }
 
         int count = 0;
-        for (final Chunk chunk : getChunksAroundPlayer((Player) sender)){
+        for (final Chunk chunk : Utils.getChunksAroundPlayer((Player) sender)){
             for (final BlockState state : chunk.getTileEntities()) {
                 if (!(state instanceof CreatureSpawner)) continue;
 
@@ -97,26 +95,6 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
             main.sendPrefixedMessage(sender, "No spawners were detected");
         else
             main.sendPrefixedMessage(sender, "Processing " + count + " spawners");
-    }
-
-    @NotNull
-    private Collection<Chunk> getChunksAroundPlayer(final @NotNull Player player) {
-        // https://www.spigotmc.org/threads/get-chunks-around-players-chunk.73189/
-        final int[] offset = { -1, 0, 1 };
-
-        final World world = player.getWorld();
-        final int baseX = player.getLocation().getChunk().getX();
-        final int baseZ = player.getLocation().getChunk().getZ();
-
-        final Collection<Chunk> chunksAroundPlayer = new HashSet<>();
-        for (final int x : offset) {
-            for (final int z : offset) {
-                final Chunk chunk = world.getChunkAt(baseX + x, baseZ + z);
-                chunksAroundPlayer.add(chunk);
-            }
-        }
-
-        return chunksAroundPlayer;
     }
 
     private void showOrUpdateLabel(@NotNull final CommandSender sender, final @NotNull String label, final @NotNull String @NotNull [] args){
