@@ -5,7 +5,6 @@ import com.google.gson.JsonParser;
 import me.stumper66.spawnercontrol.DebugInfo;
 import me.stumper66.spawnercontrol.DebugType;
 import me.stumper66.spawnercontrol.Utils;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,10 +15,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class NbtManager {
-    public static boolean isNbtApiInstalled(){
-        return Bukkit.getPluginManager().isPluginEnabled("NBTAPI");
-    }
-
     public static void applyNBT_Data_Mob(@NotNull final LivingEntity livingEntity, @NotNull final String nbtString, final @NotNull DebugInfo debugInfo) {
         String jsonBefore = null;
         String jsonAfter = null;

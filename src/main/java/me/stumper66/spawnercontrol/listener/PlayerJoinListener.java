@@ -20,7 +20,7 @@ public class PlayerJoinListener implements Listener {
         this.main = main;
     }
 
-    private SpawnerControl main;
+    private final SpawnerControl main;
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     void onPlayerJoin(final @NotNull PlayerJoinEvent event){

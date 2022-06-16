@@ -58,7 +58,7 @@ public class SpawnerProcessor {
         this.updateProcessor = new UpdateProcessor(this);
         this.invalidActiveSpawners = new LinkedList<>();
         this.isServerOneFifteen = VersionUtils.isOneFifteen();
-        this.isNbtApiInstalled = NbtManager.isNbtApiInstalled();
+        this.isNbtApiInstalled = Bukkit.getPluginManager().isPluginEnabled("NBTAPI");
     }
 
     final SpawnerControl main;

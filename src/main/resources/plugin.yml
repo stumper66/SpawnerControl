@@ -1,7 +1,7 @@
 name: 'SpawnerControl'
 version: '${project.version}'
 main: 'me.stumper66.spawnercontrol.SpawnerControl'
-softdepend: [ 'WorldGuard' ]
+softdepend: [ 'WorldGuard', 'NBTAPI' ]
 api-version: '1.13'
 author: 'stumper66'
 description: '${project.description}'
