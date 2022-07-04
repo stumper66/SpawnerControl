@@ -285,10 +285,10 @@ public class SpawnerProcessor {
         final Future<Collection<Entity>> futureEntities = getNearbyEntity_NonAsync(info.getCs().getLocation(), options);
         Collection<Entity> nearbyEntities;
         try {
-            nearbyEntities = futureEntities.get(100L, TimeUnit.MILLISECONDS);
+            nearbyEntities = futureEntities.get(200L, TimeUnit.MILLISECONDS);
         }
         catch (InterruptedException | ConcurrentModificationException | ExecutionException | TimeoutException e){
-            e.printStackTrace();
+            Utils.logger.warning("SpawnerProcess#makeParticles: " + e.getMessage());
             return;
         }
 
