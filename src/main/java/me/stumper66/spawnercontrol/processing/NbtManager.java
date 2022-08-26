@@ -16,8 +16,8 @@ import java.util.TreeMap;
 
 public class NbtManager {
     public static void applyNBT_Data_Mob(@NotNull final LivingEntity livingEntity, @NotNull final String nbtString, final @NotNull DebugInfo debugInfo) {
-        String jsonBefore = null;
-        String jsonAfter = null;
+        String jsonBefore;
+        String jsonAfter;
 
         try {
             final de.tr7zw.nbtapi.NBTEntity nbtent = new de.tr7zw.nbtapi.NBTEntity(livingEntity);

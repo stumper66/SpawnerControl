@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class CachedModalList<T extends Comparable<T>> implements Cloneable {
+public class CachedModalList<T extends Comparable<T>> {
     public CachedModalList(){
         this.allowedList = new TreeSet<>();
         this.excludedList = new TreeSet<>();
@@ -16,10 +16,8 @@ public class CachedModalList<T extends Comparable<T>> implements Cloneable {
         this.excludedList = excludedList;
     }
 
-    @NotNull
-    public final Set<T> allowedList;
-    @NotNull
-    public final Set<T> excludedList;
+    public final @NotNull Set<T> allowedList;
+    public final @NotNull Set<T> excludedList;
     public boolean doMerge;
     public boolean allowAll;
     public boolean excludeAll;

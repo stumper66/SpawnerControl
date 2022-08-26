@@ -15,8 +15,7 @@ import java.util.HashSet;
 
 @SuppressWarnings("unused")
 public class Utils {
-    @NotNull
-    public static final MicroLogger logger = new MicroLogger("&b&lSpawnerControl:&7 ");
+    public static final @NotNull MicroLogger logger = new MicroLogger("&b&lSpawnerControl:&7 ");
 
     public static double round(final double value) {
         return Math.round(value * 100) / 100.00;
@@ -27,7 +26,7 @@ public class Utils {
         return Math.round(value * scale) / scale;
     }
 
-    public static String showSpawnerLocation(final @NotNull CreatureSpawner cs){
+    public static @NotNull String showSpawnerLocation(final @NotNull CreatureSpawner cs){
         return MessageUtils.colorizeAll(String.format("&8[&b%s &7@ &b%s&7, &b%s&7, &b%s&7 in '&b%s&7'&8]&7",
                 WordUtils.capitalizeFully(cs.getSpawnedType().toString()),
                 cs.getLocation().getBlockX(),
@@ -49,8 +48,7 @@ public class Utils {
         }
     }
 
-    @NotNull
-    public static Collection<Chunk> getChunksAroundPlayer(final @NotNull Player player) {
+    public static @NotNull Collection<Chunk> getChunksAroundPlayer(final @NotNull Player player) {
         // https://www.spigotmc.org/threads/get-chunks-around-players-chunk.73189/
         final int[] offset = { -1, 0, 1 };
 

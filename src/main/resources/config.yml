@@ -84,6 +84,9 @@ create-particles-on-spawner: true
 # Optional and requires NBTAPI - https://www.spigotmc.org/resources/nbt-api.7939/
 nbt-data: ''
 
+# Spawners with the group group id will all spawn at the same time when one of them is triggered
+spawn-group-id: ''
+
 # Unused Settings
 
 # Establish Slime-Specific modifications

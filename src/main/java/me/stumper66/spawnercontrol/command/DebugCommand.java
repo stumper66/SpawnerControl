@@ -283,8 +283,7 @@ public class DebugCommand {
         sender.sendMessage(MessageUtils.colorizeAll(sb.toString()));
     }
 
-    @NotNull
-    List<String> onTabComplete(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
+    @NotNull List<String> onTabComplete(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (!sender.hasPermission("spawnercontrol.debug")) return Collections.emptyList();
 
         if (args.length == 2)
@@ -305,8 +304,7 @@ public class DebugCommand {
         return Collections.emptyList();
     }
 
-    @NotNull
-    private List<String> tabCompleteForNames(final @NotNull String @NotNull [] args, final @NotNull Set<String> names){
+    private @NotNull List<String> tabCompleteForNames(final @NotNull String @NotNull [] args, final @NotNull Set<String> names){
         if (args.length == 3)
             return List.of("add", "remove");
 
@@ -316,8 +314,7 @@ public class DebugCommand {
         return Collections.emptyList();
     }
 
-    @NotNull
-    private List<String> tabCompleteForDebugTypes(final @NotNull String @NotNull [] args){
+    private @NotNull List<String> tabCompleteForDebugTypes(final @NotNull String @NotNull [] args){
         if (args.length == 3)
             return List.of("add", "remove");
 
@@ -366,8 +363,7 @@ public class DebugCommand {
         return Collections.emptyList();
     }
 
-    @NotNull
-    private List<String> tabCompleteForEntityTypes(final @NotNull String @NotNull [] args){
+    private @NotNull List<String> tabCompleteForEntityTypes(final @NotNull String @NotNull [] args){
         if (args.length == 3)
             return List.of("add", "remove");
 

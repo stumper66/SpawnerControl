@@ -18,8 +18,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public class WorldGuardManager {
-    @NotNull
-    public static List<String> getWorldGuardRegionsForLocation(@NotNull final Location location) {
+    public static @NotNull List<String> getWorldGuardRegionsForLocation(@NotNull final Location location) {
         final List<String> wg_Regions = new LinkedList<>();
 
         if (location.getWorld() == null) return wg_Regions;

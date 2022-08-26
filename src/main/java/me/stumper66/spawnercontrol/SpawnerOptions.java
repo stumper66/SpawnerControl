@@ -54,6 +54,7 @@ public class SpawnerOptions {
     public String customNameMatch;
     public String commandToRun;
     public String nbtData;
+    public String spawnGroupId;
     public @NotNull CachedModalList<String> allowedWorlds;
     public @NotNull CachedModalList<EntityType> allowedEntityTypes;
 

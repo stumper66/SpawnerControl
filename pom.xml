@@ -6,7 +6,7 @@
 
     <groupId>me.stumper66</groupId>
     <artifactId>SpawnerControl</artifactId>
-    <version>0.98.2</version>
+    <version>0.99</version>
     <packaging>jar</packaging>
 
     <name>SlimeSpawners</name>

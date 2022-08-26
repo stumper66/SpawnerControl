@@ -239,9 +239,8 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
 
     private final List<String> SUBCOMMANDS = List.of("debug", "reload", "info", "label", "spawners", "enable", "disable", "scan_near");
 
-    @Nullable
     @Override
-    public List<String> onTabComplete(final @NotNull CommandSender commandSender, final @NotNull Command command, final @NotNull String label, final @NotNull String @NotNull [] args) {
+    public @Nullable List<String> onTabComplete(final @NotNull CommandSender commandSender, final @NotNull Command command, final @NotNull String label, final @NotNull String @NotNull [] args) {
         if (args.length > 1 && "debug".equals(args[0]))
             return debugCommand.onTabComplete(commandSender, args);
         else if (args.length == 1)

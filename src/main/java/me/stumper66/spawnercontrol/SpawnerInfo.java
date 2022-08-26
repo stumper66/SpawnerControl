@@ -29,8 +29,7 @@ public class SpawnerInfo {
     private String spawnerCustomName;
     private boolean hasCheckedForCustomName;
 
-    @NotNull
-    public CreatureSpawner getCs(){
+    public @NotNull CreatureSpawner getCs(){
         return this.cs;
     }
 
@@ -39,8 +38,7 @@ public class SpawnerInfo {
         this.basicLocation = new BasicLocation(cs.getLocation());
     }
 
-    @NotNull
-    public BasicLocation getBasicLocation(){
+    public @NotNull BasicLocation getBasicLocation(){
         return this.basicLocation;
     }
 
@@ -51,8 +49,7 @@ public class SpawnerInfo {
                 options.maxSpawnDelay + ThreadLocalRandom.current().nextInt(Math.max(options.maxSpawnDelay - options.minSpawnDelay, 1));
     }
 
-    @Nullable
-    public String getSpawnerCustomName(final @NotNull SpawnerControl spawnerControl){
+    public @Nullable String getSpawnerCustomName(final @NotNull SpawnerControl spawnerControl){
         if (!hasCheckedForCustomName){
             hasCheckedForCustomName = true;
             if (cs.getPersistentDataContainer().has(spawnerControl.spawnerProcessor.spawnerCustomNameKey, PersistentDataType.STRING))

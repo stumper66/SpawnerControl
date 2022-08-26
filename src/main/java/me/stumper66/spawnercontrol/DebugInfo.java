@@ -48,9 +48,6 @@ public class DebugInfo {
 
         String regionName = info.matchedWGRegion;
         if (regionName == null) regionName = "(none)";
-        if (!this.enabledRegionNames.isEmpty() && !this.enabledRegionNames.contains(regionName))
-            return false;
-
-        return true;
+        return this.enabledRegionNames.isEmpty() || this.enabledRegionNames.contains(regionName);
     }
 }

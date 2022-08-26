@@ -77,6 +77,7 @@ public class SpawnerProcessor {
     public final static Object lock_ActiveSpawners = new Object();
     private boolean threadIsProcessing;
     private final boolean isNbtApiInstalled;
+    public boolean hasSpawnerGroupIds;
 
     public void startProcessing() {
         if (!main.isEnabled) return;
@@ -131,15 +132,33 @@ public class SpawnerProcessor {
             if (info == null) continue;
 
             if (shouldSpawnerSpawnNow(info)) {
-                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.ACTIVE_SPAWNERS, info))
-                    Utils.logger.info("attempting spawn from " + Utils.showSpawnerLocation(info.getCs()));
-                final SpawnerOptions opts = info.options != null ?
-                        info.options : options;
-                spawnEntities(info, opts);
+                startSpawnAttempt(info);
 
-                info.resetTimeLeft(options);
+                // if a spawner group id was defined then we'll also force spawn any other spawners
+                // that have the same id
+                if (hasSpawnerGroupIds){
+                    final List<SpawnerInfo> spawnerPeers = getSpawnersWithSameSpawnGroupId(info);
+                    if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.ACTIVE_SPAWNERS)) {
+                        final String groupId = info.options == null ? "(unknown)" : info.options.spawnGroupId;
+                        Utils.logger.info(String.format("spawn-group-id: %s, spawner peers: %s", groupId, spawnerPeers.size()));
+                    }
+
+                    for (final SpawnerInfo spawnerPeer : spawnerPeers){
+                        startSpawnAttempt(spawnerPeer);
+                    }
+                }
             }
         }
+    }
+
+    private void startSpawnAttempt(final @NotNull SpawnerInfo info){
+        if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.ACTIVE_SPAWNERS, info))
+            Utils.logger.info("attempting spawn from " + Utils.showSpawnerLocation(info.getCs()));
+        final SpawnerOptions opts = info.options != null ?
+                info.options : options;
+        spawnEntities(info, opts);
+
+        info.resetTimeLeft(options);
     }
 
     private void makeSureSpawnersStillExist(){
@@ -164,8 +183,7 @@ public class SpawnerProcessor {
         this.activeSpawnersNeedsUpdating = false;
     }
 
-    @NotNull
-    private Set<BasicLocation> getSpawnersMeetingLightCriteria(){
+    private @NotNull Set<BasicLocation> getSpawnersMeetingLightCriteria(){
         final Set<BasicLocation> spawners = new HashSet<>();
 
         for (final BasicLocation basicLocation : activeSpawners.keySet()){
@@ -208,8 +226,7 @@ public class SpawnerProcessor {
         return spawners;
     }
 
-    @NotNull
-    private Set<BasicLocation> getSpawnersWithinPlayerActivationRange(final Set<BasicLocation> spawnersToCompare){
+    private @NotNull Set<BasicLocation> getSpawnersWithinPlayerActivationRange(final Set<BasicLocation> spawnersToCompare){
         final Set<BasicLocation> spawners = new HashSet<>();
 
         for (final Player player : Bukkit.getOnlinePlayers()){
@@ -241,9 +258,30 @@ public class SpawnerProcessor {
         return spawners;
     }
 
+    private @NotNull List<SpawnerInfo> getSpawnersWithSameSpawnGroupId(final @NotNull SpawnerInfo info){
+        final List<SpawnerInfo> spawners = new LinkedList<>();
 
-    @NotNull
-    public Collection<SpawnerInfo> getMonitoredSpawners(){
+        if (info.options == null) return spawners;
+        final String groupId = info.options.spawnGroupId;
+        if (info.options.spawnGroupId == null || info.options.spawnGroupId.length() == 0)
+            return spawners;
+
+        for (final BasicLocation basicLocation : activeSpawners.keySet()) {
+            if (basicLocation == info.getBasicLocation()) continue;
+
+            final SpawnerInfo spawnerInfo = activeSpawners.get(basicLocation);
+            if (spawnerInfo.options == null) spawnerInfo.options = new SpawnerOptions();
+
+            if (groupId.equalsIgnoreCase(spawnerInfo.options.spawnGroupId)){
+                spawners.add(spawnerInfo);
+            }
+        }
+
+        return spawners;
+    }
+
+
+    public @NotNull Collection<SpawnerInfo> getMonitoredSpawners(){
         return this.activeSpawners.values();
     }
 
@@ -399,8 +437,7 @@ public class SpawnerProcessor {
         NbtManager.applyNBT_Data_Mob((LivingEntity) entity, info.options.nbtData, main.debugInfo);
     }
 
-    @NotNull
-    private String populateCommand(final @NotNull SpawnerInfo info, final @NotNull Location spawnLocation){
+    private @NotNull String populateCommand(final @NotNull SpawnerInfo info, final @NotNull Location spawnLocation){
         if (info.options == null) return "";
 
         final String locationString = String.format("%s %s %s", spawnLocation.getX(), spawnLocation.getY(), spawnLocation.getZ());
@@ -415,8 +452,7 @@ public class SpawnerProcessor {
         );
     }
 
-    @NotNull
-    private Entity spawnEntity(final @NotNull CreatureSpawner cs, final @NotNull Location spawnLocation){
+    private @NotNull Entity spawnEntity(final @NotNull CreatureSpawner cs, final @NotNull Location spawnLocation){
         // if you're running spigot then they will spawn in with default spawn reason
         // if running paper they will spawn in with spawner spawn reason
 
@@ -429,8 +465,7 @@ public class SpawnerProcessor {
         return SpigotCompat.spawnEntity(spawnLocation, cs.getSpawnedType());
     }
 
-    @NotNull
-    private Future<Collection<Entity>> getNearbyEntity_NonAsync(final @NotNull Location location, final @NotNull SpawnerOptions options){
+    private @NotNull Future<Collection<Entity>> getNearbyEntity_NonAsync(final @NotNull Location location, final @NotNull SpawnerOptions options){
         final CompletableFuture<Collection<Entity>> completableFuture = new CompletableFuture<>();
 
         final BukkitRunnable runnable = new BukkitRunnable() {
@@ -451,8 +486,7 @@ public class SpawnerProcessor {
         return completableFuture;
     }
 
-    @Nullable
-    private Location getSpawnLocation(final @NotNull Location spawnerLocation, final @NotNull EntityType entityType) {
+    private @Nullable Location getSpawnLocation(final @NotNull Location spawnerLocation, final @NotNull EntityType entityType) {
         if (spawnerLocation.getWorld() == null) return null;
 
         final World world = spawnerLocation.getWorld();

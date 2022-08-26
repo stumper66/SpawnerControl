@@ -18,8 +18,7 @@ import java.util.TreeSet;
 
 public class FileLoader {
 
-    @NotNull
-    static YamlConfiguration loadConfig(final @NotNull SpawnerControl main){
+    @NotNull static YamlConfiguration loadConfig(final @NotNull SpawnerControl main){
         final File file = new File(main.getDataFolder(), "config.yml");
 
         if (!file.exists())
@@ -33,17 +32,21 @@ public class FileLoader {
 
     static void parseConfigFile(final @NotNull SpawnerControl main, final @NotNull YamlConfiguration settings){
         final SpawnerOptions defaults = new SpawnerOptions();
+        main.spawnerProcessor.hasSpawnerGroupIds = false;
 
         final SpawnerOptions spawnerOptions = parseSpawnerOptions(settings, defaults);
         spawnerOptions.isDefaultOptions = true;
+        if (defaults.spawnGroupId != null && defaults.spawnGroupId.length() > 0)
+            main.spawnerProcessor.hasSpawnerGroupIds = true;
+        if (spawnerOptions.spawnGroupId != null && spawnerOptions.spawnGroupId.length() > 0)
+            main.spawnerProcessor.hasSpawnerGroupIds = true;
 
         main.wgRegionOptions = parseConfigRegions(settings.get("worldguard-regions"), spawnerOptions, true);
         main.namedSpawnerOptions = parseConfigRegions(settings.get("named-spawners"), spawnerOptions, false);
         main.spawnerOptions = spawnerOptions;
     }
 
-    @NotNull
-    private static SpawnerOptions parseSpawnerOptions(final ConfigurationSection cs, final SpawnerOptions defaults){
+    private @NotNull static SpawnerOptions parseSpawnerOptions(final @NotNull ConfigurationSection cs, final @NotNull SpawnerOptions defaults){
         final SpawnerOptions spawnerOptions = new SpawnerOptions();
         final CachedModalList<String> parsedWorldList = buildCachedModalListOfString(cs);
         if (parsedWorldList != null)
@@ -66,6 +69,7 @@ public class FileLoader {
         spawnerOptions.doMobSpawn = cs.getBoolean("also-spawn-mob", defaults.doMobSpawn);
         spawnerOptions.doSpawnerParticles = cs.getBoolean("create-particles-on-spawner", defaults.doSpawnerParticles);
         spawnerOptions.nbtData = cs.getString("nbt-data", defaults.nbtData);
+        spawnerOptions.spawnGroupId = cs.getString("spawn-group-id", defaults.spawnGroupId);
 
         Integer[] numberRange = getAmountRangeFromString(cs.getString("spawn-count"));
         if (numberRange != null) {
@@ -99,8 +103,7 @@ public class FileLoader {
         return spawnerOptions;
     }
 
-    @Nullable
-    private static Integer[] getAmountRangeFromString(final String numberOrNumberRange){
+    private @Nullable static Integer[] getAmountRangeFromString(final String numberOrNumberRange){
         if (numberOrNumberRange == null || numberOrNumberRange.isEmpty()) return null;
 
         if (!numberOrNumberRange.contains("-")){
@@ -126,8 +129,7 @@ public class FileLoader {
         return new Integer[]{ Integer.parseInt(nums[0].trim()), Integer.parseInt(nums[1].trim()) };
     }
 
-    @Nullable
-    private static Map<String, SpawnerOptions> parseConfigRegions(final @Nullable Object configRegion, final @NotNull SpawnerOptions defaults, final boolean isWG){
+    private @Nullable static Map<String, SpawnerOptions> parseConfigRegions(final @Nullable Object configRegion, final @NotNull SpawnerOptions defaults, final boolean isWG){
         if (configRegion == null) return null;
 
         final Map<String, SpawnerOptions> regionOptions = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
@@ -154,8 +156,7 @@ public class FileLoader {
         return regionOptions;
     }
 
-    @Nullable
-    private static CachedModalList<String> buildCachedModalListOfString(final ConfigurationSection cs){
+    private @Nullable static CachedModalList<String> buildCachedModalListOfString(final ConfigurationSection cs){
         if (cs == null) return null;
 
         final CachedModalList<String> cachedModalList = new CachedModalList<>(new TreeSet<>(String.CASE_INSENSITIVE_ORDER), new TreeSet<>(String.CASE_INSENSITIVE_ORDER));
@@ -202,8 +203,7 @@ public class FileLoader {
         return cachedModalList;
     }
 
-    @Nullable
-    private static CachedModalList<EntityType> buildCachedModalListOfEntityType(final ConfigurationSection csParent) {
+    private @Nullable static CachedModalList<EntityType> buildCachedModalListOfEntityType(final ConfigurationSection csParent) {
         if (csParent == null) return null;
         final ConfigurationSection cs = objTo_CS(csParent.get("allowed-entity-types"));
         if (cs == null){
@@ -263,8 +263,7 @@ public class FileLoader {
         return cachedModalList;
     }
 
-    @Nullable
-    private static ConfigurationSection objTo_CS(final Object object){
+    private @Nullable static ConfigurationSection objTo_CS(final Object object){
         if (object == null) return null;
 
         if (object instanceof ConfigurationSection) {
