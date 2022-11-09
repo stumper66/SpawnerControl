@@ -26,7 +26,9 @@ allowed-entity-types:
   allowed-list: ['slime'] # For all mobs, use '*'.
   excluded-list: ['']
 
-use-spawn-types: ['CHICKEN', 'COW']
+# if you want to spawn one or more mob types other than the mob
+# currently defined in the creature spawner, use the list below
+# use-spawn-types: ['CHICKEN', 'COW']
 
 # Establish the minimum and maximum light level required for the spawner to activate.
 # By default, we use all light levels.
