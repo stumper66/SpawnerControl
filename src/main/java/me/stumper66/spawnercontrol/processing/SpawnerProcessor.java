@@ -50,7 +50,6 @@ public class SpawnerProcessor {
     public SpawnerProcessor(final SpawnerControl main) {
         this.main = main;
         this.activeSpawners = new HashMap<>();
-        this.activeSpawnerList = new HashSet<>();
         this.options = new SpawnerOptions();
         this.lastWGCheckTicks = -1;
         this.hasWorldGuard = SpawnerControl.isWorldGuardInstalled();
@@ -63,7 +62,6 @@ public class SpawnerProcessor {
 
     final SpawnerControl main;
     final @NotNull Map<BasicLocation, SpawnerInfo> activeSpawners;
-    private final Set<BasicLocation> activeSpawnerList;
     final boolean hasWorldGuard;
     final boolean isServerOneFifteen;
     boolean activeSpawnersNeedsUpdating;
@@ -168,19 +166,6 @@ public class SpawnerProcessor {
             activeSpawners.remove(basicLocation);
             updateProcessor.allSpawners.remove(basicLocation);
         }
-
-        updateActiveSpawnerList();
-    }
-
-    void updateActiveSpawnerList(){
-        if (!this.activeSpawnersNeedsUpdating) return;
-
-        synchronized (lock_ActiveSpawners){
-            this.activeSpawnerList.clear();
-            this.activeSpawnerList.addAll(this.activeSpawners.keySet());
-        }
-
-        this.activeSpawnersNeedsUpdating = false;
     }
 
     private @NotNull Set<BasicLocation> getSpawnersMeetingLightCriteria(){
@@ -330,8 +315,10 @@ public class SpawnerProcessor {
             return;
         }
 
+        final EntityType useEntityType = getEntityTypeForSpawn(info);
+
         for (final Entity entity : nearbyEntities){
-            if (entity.getType() == info.getCs().getSpawnedType())
+            if (entity.getType() == useEntityType)
                 similarEntityCount++;
         }
 
@@ -345,20 +332,22 @@ public class SpawnerProcessor {
         final BukkitRunnable runnable = new BukkitRunnable() {
             @Override
             public void run() {
-                spawnEntity_NonAsync(info, currentCount);
+                spawnEntity_NonAsync(info, currentCount, useEntityType);
             }
         };
 
         runnable.runTask(main);
     }
 
-    private void spawnEntity_NonAsync(final @NotNull SpawnerInfo info, int similarEntityCount){
+    private void spawnEntity_NonAsync(final @NotNull SpawnerInfo info, int similarEntityCount, final EntityType entityType){
         final CreatureSpawner cs = info.getCs();
         if (info.options == null) info.options = this.options;
 
         int spawnCount = info.options.spawnCount_Min;
         if (info.options.spawnCount_Max > spawnCount)
             spawnCount = ThreadLocalRandom.current().nextInt(info.options.spawnCount_Min, info.options.spawnCount_Max + 1);
+
+        int spawnedInCount = 0;
 
         for (int i = 0; i < spawnCount; i++) {
             if (i == 0){
@@ -372,7 +361,7 @@ public class SpawnerProcessor {
                 }
             }
 
-            final Location spawnLocation = getSpawnLocation(cs.getLocation(), cs.getSpawnedType());
+            final Location spawnLocation = getSpawnLocation(cs.getLocation(), entityType);
             if (spawnLocation == null) {
                 if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_FAILED, info))
                     Utils.logger.info("Could not find a suitable spawn location: " + Utils.showSpawnerLocation(cs));
@@ -396,10 +385,11 @@ public class SpawnerProcessor {
 
             Entity entity = null;
             if (info.options.doMobSpawn) {
-                entity = spawnEntity(cs, spawnLocation);
+                entity = spawnEntity(cs, spawnLocation, entityType);
                 applyNbtData(entity, info);
                 this.currentSpawningEntityId = entity.getUniqueId();
                 Bukkit.getPluginManager().callEvent(new SpawnerSpawnEvent(entity, cs));
+                spawnedInCount++;
             }
 
             this.currentSpawningEntityId = null;
@@ -427,6 +417,23 @@ public class SpawnerProcessor {
             similarEntityCount++;
             if (similarEntityCount >= info.options.maxNearbyEntities) break;
         } // next spawn count
+
+        if (spawnedInCount > 0 && main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_SUCCESS, info)) {
+            Utils.logger.info(String.format("spawned in %s of type %s at %s",
+                    spawnedInCount, entityType, Utils.showSpawnerLocation(cs)));
+        }
+    }
+
+    private @NotNull EntityType getEntityTypeForSpawn(final @NotNull SpawnerInfo spawnerInfo){
+        if (spawnerInfo.options == null || spawnerInfo.options.useSpawnTypes.isEmpty())
+            return spawnerInfo.getCs().getSpawnedType();
+
+        final List<EntityType> types = spawnerInfo.options.useSpawnTypes;
+        if (types.size() == 1)
+            return types.get(0);
+
+        final int randomNum = ThreadLocalRandom.current().nextInt(0, types.size());
+        return types.get(randomNum);
     }
 
     private void applyNbtData(final @NotNull Entity entity, final @NotNull SpawnerInfo info){
@@ -452,17 +459,17 @@ public class SpawnerProcessor {
         );
     }
 
-    private @NotNull Entity spawnEntity(final @NotNull CreatureSpawner cs, final @NotNull Location spawnLocation){
+    private @NotNull Entity spawnEntity(final @NotNull CreatureSpawner cs, final @NotNull Location spawnLocation, final EntityType entityType){
         // if you're running spigot then they will spawn in with default spawn reason
         // if running paper they will spawn in with spawner spawn reason
 
         if (VersionUtils.isRunningPaper()){
             return this.isServerOneFifteen ?
-                    cs.getWorld().spawnEntity(spawnLocation, cs.getSpawnedType(), CreatureSpawnEvent.SpawnReason.SPAWNER) :
-                    cs.getWorld().spawnEntity(spawnLocation, cs.getSpawnedType());
+                    cs.getWorld().spawnEntity(spawnLocation, entityType, CreatureSpawnEvent.SpawnReason.SPAWNER) :
+                    cs.getWorld().spawnEntity(spawnLocation, entityType);
         }
 
-        return SpigotCompat.spawnEntity(spawnLocation, cs.getSpawnedType());
+        return SpigotCompat.spawnEntity(spawnLocation, entityType);
     }
 
     private @NotNull Future<Collection<Entity>> getNearbyEntity_NonAsync(final @NotNull Location location, final @NotNull SpawnerOptions options){
@@ -542,7 +549,7 @@ public class SpawnerProcessor {
 
     public int getActiveSpawnersCount() {
         synchronized (lock_ActiveSpawners) {
-            return this.activeSpawnerList.size();
+            return this.activeSpawners.size();
         }
     }
 
@@ -579,7 +586,7 @@ public class SpawnerProcessor {
     public boolean isSpawnerActive(final @NotNull CreatureSpawner cs){
         final BasicLocation basicLocation = new BasicLocation(cs.getLocation());
         synchronized (lock_ActiveSpawners){
-            return this.activeSpawnerList.contains(basicLocation);
+            return this.activeSpawners.containsKey(basicLocation);
         }
     }
 

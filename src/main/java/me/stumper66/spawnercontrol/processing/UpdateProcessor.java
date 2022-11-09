@@ -79,7 +79,6 @@ public class UpdateProcessor {
         }
 
         processPendingBlocks();
-        sp.updateActiveSpawnerList();
     }
 
     private void processSpawnerRename(final @NotNull SpawnerUpdateItem item){

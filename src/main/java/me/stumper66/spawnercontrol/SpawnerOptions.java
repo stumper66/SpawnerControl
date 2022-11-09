@@ -5,11 +5,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.LinkedList;
+import java.util.List;
 
 public class SpawnerOptions {
     public SpawnerOptions(){
         this.allowedWorlds = new CachedModalList<>();
         this.allowedEntityTypes = new CachedModalList<>();
+        this.useSpawnTypes = new LinkedList<>();
         // these are the defaults
         this.playerRequiredRange = 6.0;
         this.minSpawnDelay = 200;
@@ -57,6 +60,7 @@ public class SpawnerOptions {
     public String spawnGroupId;
     public @NotNull CachedModalList<String> allowedWorlds;
     public @NotNull CachedModalList<EntityType> allowedEntityTypes;
+    public @NotNull List<EntityType> useSpawnTypes;
 
     public void setPlayerRequiredRange(final double playerRequiredRange){
         this.playerRequiredRange = playerRequiredRange;

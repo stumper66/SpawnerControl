@@ -70,6 +70,7 @@ public class FileLoader {
         spawnerOptions.doSpawnerParticles = cs.getBoolean("create-particles-on-spawner", defaults.doSpawnerParticles);
         spawnerOptions.nbtData = cs.getString("nbt-data", defaults.nbtData);
         spawnerOptions.spawnGroupId = cs.getString("spawn-group-id", defaults.spawnGroupId);
+        spawnerOptions.useSpawnTypes = parseEntityList(cs.getStringList("use-spawn-types"));
 
         Integer[] numberRange = getAmountRangeFromString(cs.getString("spawn-count"));
         if (numberRange != null) {
@@ -154,6 +155,22 @@ public class FileLoader {
         }
 
         return regionOptions;
+    }
+
+    private @NotNull static List<EntityType> parseEntityList(final @NotNull List<String> entities){
+        final List<EntityType> results = new LinkedList<>();
+
+        for (final String entity : entities){
+            try{
+                final EntityType entityType = EntityType.valueOf(entity.trim().toUpperCase());
+                results.add(entityType);
+            }
+            catch (Exception e){
+                Utils.logger.warning("Invalid entity type: " + entity);
+            }
+        }
+
+        return results;
     }
 
     private @Nullable static CachedModalList<String> buildCachedModalListOfString(final ConfigurationSection cs){
