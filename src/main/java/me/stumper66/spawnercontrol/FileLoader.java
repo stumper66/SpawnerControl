@@ -133,7 +133,7 @@ public class FileLoader {
     private @Nullable static Map<String, SpawnerOptions> parseConfigRegions(final @Nullable Object configRegion, final @NotNull SpawnerOptions defaults, final boolean isWG){
         if (configRegion == null) return null;
 
-        final Map<String, SpawnerOptions> regionOptions = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        final Map<String, SpawnerOptions> results = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
         //noinspection unchecked
         for (final LinkedHashMap<String, Object> hashMap : (List<LinkedHashMap<String, Object>>) (configRegion)) {
@@ -151,10 +151,10 @@ public class FileLoader {
             if (!isWG)
                 opts.customNameMatch = keyName;
 
-            regionOptions.put(keyName, opts);
+            results.put(keyName, opts);
         }
 
-        return regionOptions;
+        return results;
     }
 
     private @NotNull static List<EntityType> parseEntityList(final @NotNull List<String> entities){

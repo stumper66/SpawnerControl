@@ -23,6 +23,7 @@ import java.util.Map;
 
 public class SpawnerControl extends JavaPlugin {
 
+    private static SpawnerControl instance;
     public YamlConfiguration settings;
     public boolean isEnabled;
     public boolean supportsVariableMinHeight;
@@ -35,6 +36,7 @@ public class SpawnerControl extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        instance = this;
         spawnerProcessor = new SpawnerProcessor(this);
         debugInfo = new DebugInfo();
         this.supportsVariableMinHeight = VersionUtils.isOneSixteen();
@@ -101,5 +103,9 @@ public class SpawnerControl extends JavaPlugin {
 
     public void sendPrefixedMessage(final @NotNull CommandSender sender, final String msg) {
         sender.sendMessage(MessageUtils.colorizeAll("&b&lSpawnerControl: &7" + msg));
+    }
+
+    public static SpawnerControl getInstance(){
+        return instance;
     }
 }

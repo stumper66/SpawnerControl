@@ -150,13 +150,19 @@ public class SpawnerProcessor {
     }
 
     private void startSpawnAttempt(final @NotNull SpawnerInfo info){
-        if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.ACTIVE_SPAWNERS, info))
+        if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.ACTIVE_SPAWNERS, info))
             Utils.logger.info("attempting spawn from " + Utils.showSpawnerLocation(info.getCs()));
-        final SpawnerOptions opts = info.options != null ?
-                info.options : options;
+        SpawnerOptions opts = info.options != null ?
+                info.options : this.options;
         spawnEntities(info, opts);
 
-        info.resetTimeLeft(options);
+        final String spawnerCustomName = info.getSpawnerCustomName();
+
+        if (spawnerCustomName != null && main.namedSpawnerOptions.containsKey(spawnerCustomName)) {
+            opts = main.namedSpawnerOptions.get(spawnerCustomName);
+        }
+
+        info.resetTimeLeft(opts);
     }
 
     private void makeSureSpawnersStillExist(){
@@ -177,7 +183,7 @@ public class SpawnerProcessor {
 
             final int lightLevel = info.getCs().getBlock().getLightLevel();
             if (lightLevel < info.options.allowedLightLevel_Min || lightLevel > info.options.allowedLightLevel_Max) {
-                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.LIGHT_REQ_NOT_MET, info)) {
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.LIGHT_REQ_NOT_MET, info)) {
                     Utils.logger.info(String.format(
                             "Spawner doesn't meet light criteria of %s-%s. light level: %s. %s",
                             info.options.allowedLightLevel_Min, info.options.allowedLightLevel_Max, info.getCs().getBlock().getLightLevel(), Utils.showSpawnerLocation(info.getCs())));
@@ -187,7 +193,7 @@ public class SpawnerProcessor {
 
             final int skyLightLevel = info.getCs().getBlock().getLightFromSky();
             if (skyLightLevel < info.options.allowedSkyLightLevel_Min || skyLightLevel > info.options.allowedSkyLightLevel_Max) {
-                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.LIGHT_REQ_NOT_MET, info)) {
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.LIGHT_REQ_NOT_MET, info)) {
                     Utils.logger.info(String.format(
                             "Spawner doesn't meet sky light criteria of %s-%s. block light level: %s. %s",
                             info.options.allowedSkyLightLevel_Min, info.options.allowedSkyLightLevel_Max, info.getCs().getBlock().getLightFromSky(), Utils.showSpawnerLocation(info.getCs())));
@@ -197,7 +203,7 @@ public class SpawnerProcessor {
 
             final int blockLightLevel = info.getCs().getBlock().getLightFromBlocks();
             if (blockLightLevel < info.options.allowedBlockLightLevel_Min || blockLightLevel > info.options.allowedBlockLightLevel_Max) {
-                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.LIGHT_REQ_NOT_MET, info)) {
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.LIGHT_REQ_NOT_MET, info)) {
                     Utils.logger.info(String.format(
                             "Spawner doesn't meet block light criteria of %s-%s. block light level: %s. %s",
                             info.options.allowedBlockLightLevel_Min, info.options.allowedBlockLightLevel_Max, info.getCs().getBlock().getLightFromBlocks(), Utils.showSpawnerLocation(info.getCs())));
@@ -291,6 +297,9 @@ public class SpawnerProcessor {
             info.immediateSpawnResetTimeLeft = info.options.immediateSpawnResetPeriod;
 
         info.delayTimeLeft -= ticksPerCall;
+        if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.TICKS_LEFT, info)) {
+            Utils.logger.info("ticks left " + Math.max(info.delayTimeLeft, 0) + ", " + Utils.showSpawnerLocation(info.getCs()));
+        }
 
         return info.delayTimeLeft <= 0;
     }
@@ -323,7 +332,7 @@ public class SpawnerProcessor {
         }
 
         if (similarEntityCount >= options.maxNearbyEntities) {
-            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_FAILED, info))
+            if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.SPAWN_ATTEMPT_FAILED, info))
                 Utils.logger.info("too many similar entities - " + similarEntityCount + ", " + Utils.showSpawnerLocation(info.getCs()));
             return;
         }
@@ -354,16 +363,16 @@ public class SpawnerProcessor {
                 // verify the spawner still exists first
                 if (info.getBasicLocation().getLocation().getBlock().getType() != Material.SPAWNER){
                     invalidActiveSpawners.add(info.getBasicLocation());
-                    if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWNER_DEACTIVATION, info))
+                    if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.SPAWNER_DEACTIVATION, info))
                         Utils.logger.info("Spawner doesn't exist anymore: " + Utils.showSpawnerLocation(info.getCs()));
 
                     return;
                 }
             }
 
-            final Location spawnLocation = getSpawnLocation(cs.getLocation(), entityType);
+            final Location spawnLocation = getSpawnLocation(info, entityType);
             if (spawnLocation == null) {
-                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_FAILED, info))
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.SPAWN_ATTEMPT_FAILED, info))
                     Utils.logger.info("Could not find a suitable spawn location: " + Utils.showSpawnerLocation(cs));
                 continue;
             }
@@ -371,13 +380,9 @@ public class SpawnerProcessor {
             final String command = info.options.commandToRun != null ?
                     populateCommand(info, spawnLocation) : null;
 
-            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_SUCCESS, info)) {
+            if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.SPAWN_ATTEMPT_SUCCESS, info)) {
                 if (command != null)
                     Utils.logger.info("executing command: " + command);
-                if (info.options.doMobSpawn) {
-                    Utils.logger.info(String.format("spawning %s at %s, %s, %s",
-                            cs.getSpawnedType().name(), spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ()));
-                }
             }
 
             if (command != null)
@@ -409,7 +414,7 @@ public class SpawnerProcessor {
                         useMin :
                         ThreadLocalRandom.current().nextInt(useMin, useMax + 1);
 
-                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.ENTITY_SPECIFIC, info))
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.ENTITY_SPECIFIC, info))
                     Utils.logger.info("setting slime size to " + useSize + ", " + Utils.showSpawnerLocation(info.getCs()));
                 slime.setSize(useSize);
             }
@@ -418,7 +423,7 @@ public class SpawnerProcessor {
             if (similarEntityCount >= info.options.maxNearbyEntities) break;
         } // next spawn count
 
-        if (spawnedInCount > 0 && main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWN_ATTEMPT_SUCCESS, info)) {
+        if (spawnedInCount > 0 && main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.SPAWN_ATTEMPT_SUCCESS, info)) {
             Utils.logger.info(String.format("spawned in %s of type %s at %s",
                     spawnedInCount, entityType, Utils.showSpawnerLocation(cs)));
         }
@@ -493,7 +498,11 @@ public class SpawnerProcessor {
         return completableFuture;
     }
 
-    private @Nullable Location getSpawnLocation(final @NotNull Location spawnerLocation, final @NotNull EntityType entityType) {
+    private @Nullable Location getSpawnLocation(final @NotNull SpawnerInfo info, final @NotNull EntityType entityType) {
+        final Location spawnerLocation = info.getCs().getLocation();
+        final SpawnerOptions options = info.options != null ?
+                info.options : this.options;
+
         if (spawnerLocation.getWorld() == null) return null;
 
         final World world = spawnerLocation.getWorld();

@@ -49,11 +49,12 @@ public class SpawnerInfo {
                 options.maxSpawnDelay + ThreadLocalRandom.current().nextInt(Math.max(options.maxSpawnDelay - options.minSpawnDelay, 1));
     }
 
-    public @Nullable String getSpawnerCustomName(final @NotNull SpawnerControl spawnerControl){
+    public @Nullable String getSpawnerCustomName(){
         if (!hasCheckedForCustomName){
             hasCheckedForCustomName = true;
-            if (cs.getPersistentDataContainer().has(spawnerControl.spawnerProcessor.spawnerCustomNameKey, PersistentDataType.STRING))
-                this.spawnerCustomName = cs.getPersistentDataContainer().get(spawnerControl.spawnerProcessor.spawnerCustomNameKey, PersistentDataType.STRING);
+            final SpawnerControl main = SpawnerControl.getInstance();
+            if (cs.getPersistentDataContainer().has(main.spawnerProcessor.spawnerCustomNameKey, PersistentDataType.STRING))
+                this.spawnerCustomName = cs.getPersistentDataContainer().get(main.spawnerProcessor.spawnerCustomNameKey, PersistentDataType.STRING);
         }
 
         return this.spawnerCustomName;

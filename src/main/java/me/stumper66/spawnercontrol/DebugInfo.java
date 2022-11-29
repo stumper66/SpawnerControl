@@ -29,7 +29,7 @@ public class DebugInfo {
         return this.enabledDebugTypes.isEmpty() || this.enabledDebugTypes.contains(debugType);
     }
 
-    public boolean doesSpawnerMeetDebugCriteria(final @NotNull SpawnerControl sc, final @NotNull DebugType debugType, final @NotNull SpawnerInfo info){
+    public boolean doesSpawnerMeetDebugCriteria(final @NotNull DebugType debugType, final @NotNull SpawnerInfo info){
         if (!this.debugIsEnabled) return false;
 
         if (!this.enabledDebugTypes.isEmpty() && !this.enabledDebugTypes.contains(debugType)) {
@@ -40,7 +40,7 @@ public class DebugInfo {
             return false;
         }
 
-        String spawnerName = info.getSpawnerCustomName(sc);
+        String spawnerName = info.getSpawnerCustomName();
         if (spawnerName == null) spawnerName = "(none)";
         if (!this.enabledSpawnerNames.isEmpty() && !this.enabledSpawnerNames.contains(spawnerName)) {
             return false;

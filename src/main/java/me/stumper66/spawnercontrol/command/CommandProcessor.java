@@ -122,7 +122,7 @@ public class CommandProcessor implements CommandExecutor, TabCompleter  {
         }
 
         final SpawnerInfo info = new SpawnerInfo(cs, main.spawnerOptions);
-        final String customName = info.getSpawnerCustomName(main);
+        final String customName = info.getSpawnerCustomName();
         if (customName == null)
             main.sendPrefixedMessage(sender, "The spawner &r" + Utils.showSpawnerLocation(cs) + "&7 has no name yet.");
         else

@@ -224,7 +224,7 @@ public class UpdateProcessor {
         info.isChunkLoaded = cs.getLocation().isChunkLoaded();
 
         if (main.namedSpawnerOptions != null) {
-            final String spawnerCustomName = info.getSpawnerCustomName(main);
+            final String spawnerCustomName = info.getSpawnerCustomName();
 
             if (spawnerCustomName != null && main.namedSpawnerOptions.containsKey(spawnerCustomName)) {
                 info.options = main.namedSpawnerOptions.get(spawnerCustomName);
@@ -252,7 +252,7 @@ public class UpdateProcessor {
 
         if (info.options.allowedEntityTypes.isEnabledInList(cs.getSpawnedType())) {
             if (info.isChunkLoaded && !sp.activeSpawners.containsKey(info.getBasicLocation())) {
-                if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWNER_ACTIVATION, info))
+                if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.SPAWNER_ACTIVATION, info))
                     Utils.logger.info("now active: " + Utils.showSpawnerLocation(cs));
                 synchronized (SpawnerProcessor.lock_ActiveSpawners) {
                     sp.activeSpawners.put(info.getBasicLocation(), info);
@@ -265,7 +265,7 @@ public class UpdateProcessor {
             }
         }
         else if (sp.activeSpawners.containsKey(info.getBasicLocation())) {
-            if (main.debugInfo.doesSpawnerMeetDebugCriteria(main, DebugType.SPAWNER_DEACTIVATION, info))
+            if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.SPAWNER_DEACTIVATION, info))
                 Utils.logger.info("no longer tracking spawner: " + Utils.showSpawnerLocation(cs));
             synchronized (SpawnerProcessor.lock_ActiveSpawners) {
                 sp.activeSpawners.remove(info.getBasicLocation());
