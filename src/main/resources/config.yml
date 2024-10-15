@@ -49,8 +49,8 @@ player-required-range: 6
 
 
 # Establish the minimum and maximum spawn delay, measured in ticks.
-min-spawn-delay: 200
-max-spawn-delay: 800
+min-spawn-delay: 100
+max-spawn-delay: 400
 
 
 # Establish the maximum number of mobs of the same type within the range of the spawner.

@@ -3,6 +3,8 @@ package me.stumper66.spawnercontrol.listener;
 import me.stumper66.spawnercontrol.SpawnerControl;
 import me.stumper66.spawnercontrol.Utils;
 import me.stumper66.spawnercontrol.processing.UpdateOperation;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
@@ -11,7 +13,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 public class PlayerInteractEventListener implements Listener {
@@ -27,18 +28,17 @@ public class PlayerInteractEventListener implements Listener {
         if (event.getItem() == null) return;
         if (event.getClickedBlock() == null || event.getClickedBlock().getType() != Material.SPAWNER) return;
 
-        final Block csBlock = event.getClickedBlock();
-        final BukkitRunnable runnable = new BukkitRunnable() {
-            @Override
-            public void run() {
-                checkCreatureSpawnerDelayed(csBlock);
-            }
-        };
-        runnable.runTaskLater(main, 5L);
-        final CreatureSpawner cs = (CreatureSpawner) event.getClickedBlock().getState();
+        final Runnable runnable = () -> checkCreatureSpawnerDelayed(event.getClickedBlock().getLocation());
+        Bukkit.getScheduler().runTaskLater(main, runnable, 100L);
     }
 
-    private void checkCreatureSpawnerDelayed(final @NotNull Block block){
+    private void checkCreatureSpawnerDelayed(final @NotNull Location location){
+        final Block block = location.getWorld().getBlockAt(location);
+        if (block.getType() != Material.SPAWNER){
+            //Utils.logger.info("block was not a spawner");
+            return;
+        }
+
         final CreatureSpawner cs = (CreatureSpawner) block.getState();
 
         if (main.debugInfo.debugIsEnabled)

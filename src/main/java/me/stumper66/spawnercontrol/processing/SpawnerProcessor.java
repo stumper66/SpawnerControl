@@ -36,6 +36,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -254,7 +255,7 @@ public class SpawnerProcessor {
 
         if (info.options == null) return spawners;
         final String groupId = info.options.spawnGroupId;
-        if (info.options.spawnGroupId == null || info.options.spawnGroupId.length() == 0)
+        if (info.options.spawnGroupId == null || info.options.spawnGroupId.isEmpty())
             return spawners;
 
         for (final BasicLocation basicLocation : activeSpawners.keySet()) {
@@ -431,7 +432,7 @@ public class SpawnerProcessor {
 
     private @NotNull EntityType getEntityTypeForSpawn(final @NotNull SpawnerInfo spawnerInfo){
         if (spawnerInfo.options == null || spawnerInfo.options.useSpawnTypes.isEmpty())
-            return spawnerInfo.getCs().getSpawnedType();
+            return Objects.requireNonNull(spawnerInfo.getCs().getSpawnedType());
 
         final List<EntityType> types = spawnerInfo.options.useSpawnTypes;
         if (types.size() == 1)
@@ -460,7 +461,7 @@ public class SpawnerProcessor {
                 .replace("%x%", spawnLocation.getX() + "")
                 .replace("%y%", spawnLocation.getY() + "")
                 .replace("%z%", spawnLocation.getZ() + "")
-                .replace("%entity%", info.getCs().getSpawnedType().toString().toLowerCase()
+                .replace("%entity%", Objects.requireNonNull(info.getCs().getSpawnedType()).toString().toLowerCase()
         );
     }
 

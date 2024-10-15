@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Objects;
 
 @SuppressWarnings("unused")
 public class Utils {
@@ -28,7 +29,7 @@ public class Utils {
 
     public static @NotNull String showSpawnerLocation(final @NotNull CreatureSpawner cs){
         return MessageUtils.colorizeAll(String.format("&8[&b%s &7@ &b%s&7, &b%s&7, &b%s&7 in '&b%s&7'&8]&7",
-                WordUtils.capitalizeFully(cs.getSpawnedType().toString()),
+                WordUtils.capitalizeFully(Objects.requireNonNull(cs.getSpawnedType()).name()),
                 cs.getLocation().getBlockX(),
                 cs.getLocation().getBlockY(),
                 cs.getLocation().getBlockZ(),

@@ -7,6 +7,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 public class SpawnerSpawnListener implements Listener {
     public SpawnerSpawnListener(final @NotNull SpawnerControl main){
         this.main = main;
@@ -19,7 +21,7 @@ public class SpawnerSpawnListener implements Listener {
         // this will cancel natural spawners from an active spawner
         // we only want it spawning mobs created from this plugin
         if (event.getEntity().getUniqueId() != main.spawnerProcessor.currentSpawningEntityId &&
-            main.spawnerProcessor.isSpawnerActive(event.getSpawner())){
+            main.spawnerProcessor.isSpawnerActive(Objects.requireNonNull(event.getSpawner()))){
             event.setCancelled(true);
         }
     }

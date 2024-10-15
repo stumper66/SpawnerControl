@@ -73,6 +73,9 @@ public class UpdateProcessor {
                     processSpawnerRename((SpawnerUpdateItem) itemInterface);
                     break;
                 default: // update and add
+//                    if (itemInterface.getOperation() == UpdateOperation.UPDATE)
+//                        Utils.logger.info("processing spawner update, " + ((SpawnerUpdateItem) itemInterface).cs.getSpawnedType());
+
                     processSpawnerOrChunkAdd((SpawnerUpdateItem) itemInterface);
                     break;
             }
@@ -215,6 +218,15 @@ public class UpdateProcessor {
         SpawnerInfo info = sp.activeSpawners.get(basicLocation);
         if (info == null)
             info = new SpawnerInfo(cs, sp.options);
+        else{
+            // this.allSpawners.put(item.basicLocation, item.cs);
+            final CreatureSpawner csAllSpawners = this.allSpawners.get(basicLocation);
+            if (csAllSpawners.getSpawnedType() != info.getCs().getSpawnedType()){
+                // this happens when a player changed a spawner type with a spawner egg
+                // and the spawner was active
+                info.setCs(csAllSpawners);
+            }
+        }
 
         evaluateTrackingCriteriaForSpawner(info);
     }
@@ -250,7 +262,10 @@ public class UpdateProcessor {
         final Set<BasicLocation> spawnersInWorld = this.worldMappings.computeIfAbsent(cs.getLocation().getWorld().getName(), k -> new HashSet<>());
         spawnersInWorld.add(info.getBasicLocation());
 
-        if (info.options.allowedEntityTypes.isEnabledInList(cs.getSpawnedType())) {
+        final boolean meetsWorldCriteria = info.options.allowedWorlds.isEnabledInList(cs.getWorld().getName());
+        final boolean isAllowedType = info.options.allowedEntityTypes.isEnabledInList(cs.getSpawnedType());
+
+        if (meetsWorldCriteria && isAllowedType) {
             if (info.isChunkLoaded && !sp.activeSpawners.containsKey(info.getBasicLocation())) {
                 if (main.debugInfo.doesSpawnerMeetDebugCriteria(DebugType.SPAWNER_ACTIVATION, info))
                     Utils.logger.info("now active: " + Utils.showSpawnerLocation(cs));
